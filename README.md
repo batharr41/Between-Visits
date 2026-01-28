@@ -14,22 +14,18 @@ CareOps Signal AI combines structured patient data with Claude AI to detect warn
 ## 📸 Screenshots
 
 ### Dashboard Overview
-![Dashboard](screenshots/dashboard.png)
 *Real-time monitoring with color-coded risk alerts, patient statistics, and weekly trends*
 <img width="1852" height="838" alt="Dashboard png" src="https://github.com/user-attachments/assets/73fa8ab7-76cf-434b-b314-a9525beeae58" />
 
 ### Triage Queue with Critical Alerts
-![Triage Queue](screenshots/triage-queue.png)
 *Prioritized patient alerts with detailed symptoms and AI-generated action steps*
 <img width="808" height="804" alt="Triage qu" src="https://github.com/user-attachments/assets/6c525544-cd86-4aa6-839e-8c1008419e7b" />
 
 ### Patient Directory
-![Patient Directory](screenshots/patients.png)
 *All active patients with risk-based color coding, check-in history, and medical conditions*
 <img width="1803" height="681" alt="Screenshot (523)" src="https://github.com/user-attachments/assets/4315dbc6-5efe-473b-a523-0cf16e0f7f9d" />
 
-### AI-Powered Features
-![AI Features](screenshots/ai-features.png)
+### AI-Powered Features 
 *Claude AI generates shift summaries, risk explanations, and triage call scripts from structured data—no hallucinations*
 <img width="749" height="547" alt="AI" src="https://github.com/user-attachments/assets/175ff8fe-c562-4823-b38c-a76f3311fedb" />
 
