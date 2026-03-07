@@ -3,12 +3,50 @@ import { BrowserRouter, Routes, Route, Link, useParams } from 'react-router-dom'
 import {
   Activity, AlertCircle, Bell, Calendar, CheckCircle, 
   Clock, Heart, Home, Phone, TrendingUp, Users, ChevronRight,
-  AlertTriangle, Sparkles
+  AlertTriangle
 } from 'lucide-react';
 import './App.css';
 
 const DEMO_AGENCY_ID = '1f027307-125d-4904-8734-0424676a717d';
 const API_URL = import.meta.env.VITE_API_URL || '';
+
+// BetweenVisits inline SVG logo icon (ECG pulse)
+function BetweenVisitsIcon({ size = 40 }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width={size} height={size}>
+      <defs>
+        <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style={{stopColor:'#0EA5E9',stopOpacity:1}} />
+          <stop offset="100%" style={{stopColor:'#6366F1',stopOpacity:1}} />
+        </linearGradient>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{stopColor:'#0F172A',stopOpacity:1}} />
+          <stop offset="100%" style={{stopColor:'#1E293B',stopOpacity:1}} />
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <rect x="0" y="0" width="120" height="120" rx="18" fill="url(#bgGrad)"/>
+      <rect x="1" y="1" width="118" height="118" rx="17" fill="none" stroke="#0EA5E920" strokeWidth="1.5"/>
+      <polyline
+        points="10,60 28,60 36,60 44,22 54,98 64,46 72,60 92,60 110,60"
+        fill="none"
+        stroke="url(#pulseGrad)"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        filter="url(#glow)"
+      />
+      <circle cx="44" cy="22" r="5" fill="#6366F1" filter="url(#glow)"/>
+      <circle cx="54" cy="98" r="5" fill="#0EA5E9" filter="url(#glow)"/>
+    </svg>
+  );
+}
 
 function App() {
   return (
@@ -41,10 +79,10 @@ function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="logo">
-          <Sparkles className="logo-icon" />
+          <BetweenVisitsIcon size={40} />
           <div>
-            <h1 className="logo-title">CareOps Signal</h1>
-            <p className="logo-subtitle">Early Warning System</p>
+            <h1 className="logo-title">BetweenVisits</h1>
+            <p className="logo-subtitle">AI Patient Monitoring</p>
           </div>
         </div>
       </div>
