@@ -1,11 +1,15 @@
-# BetweenVisits
-
-> AI-powered patient monitoring for home care agencies — catching decline before it becomes a crisis.
+<div align="center">
+  <img src="./careops-signal-ai/screenshots/betweenvisits-logo.svg" alt="BetweenVisits" width="320" />
+  <br /><br />
+  <strong>AI-powered patient monitoring for home care agencies — catching decline before it becomes a crisis.</strong>
+  <br /><br />
 
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org)
 [![React](https://img.shields.io/badge/react-18.2.0-blue)](https://reactjs.org)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-14%2B-blue)](https://postgresql.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+</div>
 
 Home care patients are seen once or twice a day at most. A lot can go wrong in between. BetweenVisits fills that gap with structured daily check-ins and AI-driven risk detection, giving coordinators real-time visibility into every patient on their panel — without being in the room.
 
