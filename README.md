@@ -30,15 +30,16 @@ Home care coordinators manage dozens of patients they can only visit periodicall
 
 ### Dashboard Overview
 *Real-time monitoring with color-coded risk alerts, patient statistics, and weekly trends*
-![Dashboard](./careops-signal-ai/screenshots/dashboard.png)
+<img width="1878" height="859" alt="Screenshot (578)" src="https://github.com/user-attachments/assets/e9e6f747-b710-4ad6-a599-c8b1e601b093" />
 
 ### Triage Queue with Critical Alerts
 *Prioritized patient alerts with detailed symptoms and AI-generated action steps*
-![Triage Queue](./careops-signal-ai/screenshots/triage.png)
+<img width="1920" height="863" alt="Screenshot (579)" src="https://github.com/user-attachments/assets/34027869-3657-43bf-a39c-b2e853e12904" />
 
 ### Patient Directory
 *All active patients with risk-based color coding, check-in history, and medical conditions*
-![Patient Directory](./careops-signal-ai/screenshots/patients.png)
+<img width="1919" height="853" alt="Screenshot (580)" src="https://github.com/user-attachments/assets/3435d85b-b057-4180-b858-90652efd17ae" />
+
 
 ### AI-Powered Features
 *Claude AI generates shift summaries, risk explanations, and triage call scripts from structured data — no hallucinations*
