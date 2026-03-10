@@ -66,6 +66,63 @@ router.get('/patients/:id', async (req, res) => {
   }
 });
 
+// POST create new patient
+router.post('/patients', async (req, res) => {
+  try {
+    const {
+      agency_id,
+      first_name,
+      last_name,
+      date_of_birth,
+      phone,
+      address,
+      emergency_contact_name,
+      emergency_contact_phone,
+      medical_conditions,
+      medications,
+      primary_diagnosis,
+      notes
+    } = req.body;
+
+    // Validate required fields
+    if (!agency_id || !first_name || !last_name) {
+      return res.status(400).json({ error: 'agency_id, first_name, and last_name are required' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO patients (
+        agency_id, first_name, last_name, date_of_birth, phone, address,
+        emergency_contact_name, emergency_contact_phone,
+        medical_conditions, medications, primary_diagnosis, notes,
+        status, current_risk_level, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
+      RETURNING *`,
+      [
+        agency_id,
+        first_name,
+        last_name,
+        date_of_birth || null,
+        phone || null,
+        address || null,
+        emergency_contact_name || null,
+        emergency_contact_phone || null,
+        JSON.stringify(medical_conditions || []),
+        JSON.stringify(medications || []),
+        primary_diagnosis || null,
+        notes || null,
+        'active',
+        'low'
+      ]
+    );
+
+    console.log(`New patient created: ${first_name} ${last_name} (${result.rows[0].id})`);
+    res.status(201).json({ patient: result.rows[0] });
+  } catch (error) {
+    console.error('Error creating patient:', error);
+    res.status(500).json({ error: 'Failed to create patient' });
+  }
+});
+
 // Weekly report export
 router.get('/agencies/:agencyId/reports/weekly', async (req, res) => {
   try {
