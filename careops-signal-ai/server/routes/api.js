@@ -69,20 +69,21 @@ router.get('/patients/:id', async (req, res) => {
 // POST create new patient
 router.post('/patients', async (req, res) => {
   try {
-    const {
-      agency_id,
-      first_name,
-      last_name,
-      date_of_birth,
-      phone,
-      address,
-      emergency_contact_name,
-      emergency_contact_phone,
-      medical_conditions,
-      medications,
-      primary_diagnosis,
-      notes
-    } = req.body;
+    const body = req.body;
+
+    // Support both camelCase (frontend) and snake_case field names
+    const agency_id = body.agency_id || body.agencyId;
+    const first_name = body.first_name || body.firstName;
+    const last_name = body.last_name || body.lastName;
+    const date_of_birth = body.date_of_birth || body.dateOfBirth || null;
+    const phone = body.phone || null;
+    const address = body.address || null;
+    const emergency_contact_name = body.emergency_contact_name || body.emergencyContactName || body.caregiverName || null;
+    const emergency_contact_phone = body.emergency_contact_phone || body.emergencyContactPhone || body.caregiverPhone || null;
+    const medical_conditions = body.medical_conditions || body.medicalConditions || [];
+    const medications = body.medications || [];
+    const primary_diagnosis = body.primary_diagnosis || body.primaryDiagnosis || null;
+    const notes = body.notes || null;
 
     // Validate required fields
     if (!agency_id || !first_name || !last_name) {
@@ -101,15 +102,15 @@ router.post('/patients', async (req, res) => {
         agency_id,
         first_name,
         last_name,
-        date_of_birth || null,
-        phone || null,
-        address || null,
-        emergency_contact_name || null,
-        emergency_contact_phone || null,
-        JSON.stringify(medical_conditions || []),
-        JSON.stringify(medications || []),
-        primary_diagnosis || null,
-        notes || null,
+        date_of_birth,
+        phone,
+        address,
+        emergency_contact_name,
+        emergency_contact_phone,
+        JSON.stringify(medical_conditions),
+        JSON.stringify(medications),
+        primary_diagnosis,
+        notes,
         'active',
         'low'
       ]
