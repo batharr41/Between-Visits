@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Link, useParams, useNavigate } from 'reac
 import {
   Activity, AlertCircle, Bell, Calendar, CheckCircle,
   Clock, Heart, Home, Phone, TrendingUp, Users, ChevronRight,
-  AlertTriangle, Sparkles, UserPlus
+  AlertTriangle, Sparkles, UserPlus, Search, ArrowUpDown
 } from 'lucide-react';
 import './App.css';
 
@@ -294,6 +294,8 @@ function TriageQueue() {
 function PatientList() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name');
 
   useEffect(() => {
     fetch(`${API_URL}/api/agencies/${DEMO_AGENCY_ID}/patients`)
@@ -310,6 +312,47 @@ function PatientList() {
 
   if (loading) return <div className="loading">Loading patients...</div>;
 
+  // Risk level priority for sorting (highest risk first)
+  const riskPriority = { critical: 0, elevated: 1, moderate: 2, routine: 3 };
+
+  // Filter by search term
+  const filtered = patients.filter(p => {
+    const term = searchTerm.toLowerCase();
+    if (!term) return true;
+    const fullName = `${p.first_name} ${p.last_name}`.toLowerCase();
+    const conditions = Array.isArray(p.medical_conditions) ? p.medical_conditions.join(' ').toLowerCase() : '';
+    const caregiver = (p.caregiver_name || '').toLowerCase();
+    return fullName.includes(term) || conditions.includes(term) || caregiver.includes(term);
+  });
+
+  // Sort patients
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'risk') {
+      return (riskPriority[a.risk_level] ?? 3) - (riskPriority[b.risk_level] ?? 3);
+    }
+    if (sortBy === 'last-checkin') {
+      const aDate = a.last_check_in ? new Date(a.last_check_in) : new Date(0);
+      const bDate = b.last_check_in ? new Date(b.last_check_in) : new Date(0);
+      return aDate - bDate; // oldest first so neglected patients surface
+    }
+    return `${a.last_name}${a.first_name}`.localeCompare(`${b.last_name}${b.first_name}`);
+  });
+
+  // Relative time helper
+  function timeAgo(dateStr) {
+    if (!dateStr) return 'No check-ins yet';
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  }
+
   return (
     <div className="patient-list">
       <header className="page-header">
@@ -323,41 +366,84 @@ function PatientList() {
         </Link>
       </header>
 
-      <div className="patient-grid">
-        {patients.map((patient) => (
-          <Link key={patient.id} to={`/patients/${patient.id}`} className="patient-card">
-            <div className="patient-card-header">
-              <div className="patient-avatar">
-                {patient.first_name?.[0]}{patient.last_name?.[0]}
-              </div>
-              <div>
-                <h3 className="patient-name">{patient.first_name} {patient.last_name}</h3>
-                <span className={`risk-badge ${patient.risk_level || 'routine'}`}>
-                  {patient.risk_level || 'routine'} risk
-                </span>
-              </div>
-            </div>
-            <div className="patient-card-body">
-              {patient.medical_conditions && (
-                <div className="patient-conditions">
-                  {(Array.isArray(patient.medical_conditions) ? patient.medical_conditions : []).slice(0, 3).map((c, i) => (
-                    <span key={i} className="condition-tag">{c}</span>
-                  ))}
-                </div>
-              )}
-              <div className="patient-meta">
-                <span><Calendar size={14} /> DOB: {new Date(patient.date_of_birth).toLocaleDateString()}</span>
-                {patient.caregiver_name && (
-                  <span><Heart size={14} /> {patient.caregiver_name}</span>
-                )}
-              </div>
-            </div>
-            <div className="patient-card-footer">
-              <span>View Details <ChevronRight size={16} /></span>
-            </div>
-          </Link>
-        ))}
+      <div className="list-controls">
+        <div className="search-box">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Search patients, conditions, caregivers..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="sort-controls">
+          <ArrowUpDown size={16} />
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+            <option value="name">Sort by Name</option>
+            <option value="risk">Sort by Risk Level</option>
+            <option value="last-checkin">Sort by Last Check-In</option>
+          </select>
+        </div>
       </div>
+
+      {sorted.length === 0 ? (
+        <div className="empty-state">
+          <Users size={48} />
+          <h2>No patients found</h2>
+          <p>{searchTerm ? 'Try a different search term.' : 'Add your first patient to get started.'}</p>
+        </div>
+      ) : (
+        <div className="patient-grid">
+          {sorted.map((patient) => (
+            <Link key={patient.id} to={`/patients/${patient.id}`} className="patient-card">
+              <div className="patient-card-header">
+                <div className="patient-avatar">
+                  {patient.first_name?.[0]}{patient.last_name?.[0]}
+                </div>
+                <div>
+                  <h3 className="patient-name">{patient.first_name} {patient.last_name}</h3>
+                  <span className={`risk-badge ${patient.risk_level || 'routine'}`}>
+                    {patient.risk_level || 'routine'} risk
+                  </span>
+                </div>
+              </div>
+              <div className="patient-card-body">
+                {patient.medical_conditions && Array.isArray(patient.medical_conditions) && patient.medical_conditions.length > 0 && (
+                  <div className="patient-conditions">
+                    {patient.medical_conditions.slice(0, 3).map((c, i) => (
+                      <span key={i} className="condition-tag">{c}</span>
+                    ))}
+                    {patient.medical_conditions.length > 3 && (
+                      <span className="condition-tag more">+{patient.medical_conditions.length - 3}</span>
+                    )}
+                  </div>
+                )}
+                <div className="patient-meta">
+                  <span><Calendar size={14} /> DOB: {patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : 'N/A'}</span>
+                  {patient.caregiver_name && (
+                    <span><Heart size={14} /> {patient.caregiver_name}</span>
+                  )}
+                </div>
+                <div className="patient-checkin-info">
+                  <div className="checkin-stat">
+                    <Clock size={14} />
+                    <span className={`last-checkin ${!patient.last_check_in ? 'never' : ''}`}>
+                      {timeAgo(patient.last_check_in)}
+                    </span>
+                  </div>
+                  <div className="checkin-stat">
+                    <CheckCircle size={14} />
+                    <span>{patient.total_check_ins || 0} check-in{(parseInt(patient.total_check_ins) || 0) !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="patient-card-footer">
+                <span>View Details <ChevronRight size={16} /></span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -412,7 +498,7 @@ function PatientDetail() {
             <div className="info-item">
               <span className="info-label">Date of Birth</span>
               <span className="info-value">
-                {new Date(patient.date_of_birth).toLocaleDateString()}
+                {patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : 'N/A'}
               </span>
             </div>
             <div className="info-item">
