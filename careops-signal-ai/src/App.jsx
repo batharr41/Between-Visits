@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useParams, useNavigate, Navigate } from 'react-router-dom';
 import {
   Activity, AlertCircle, Bell, Calendar, CheckCircle,
   Clock, Heart, Home, Phone, TrendingUp, Users, ChevronRight,
-  AlertTriangle, Sparkles, UserPlus, Search, ArrowUpDown
+  AlertTriangle, Sparkles, UserPlus, Search, ArrowUpDown, LogOut
 } from 'lucide-react';
 import './App.css';
+import { AuthProvider, useAuth } from './AuthContext';
+import Login from './Login';
 
-const DEMO_AGENCY_ID = '1f027307-125d-4904-8734-0424676a717d';
 const API_URL = import.meta.env.VITE_API_URL || '';
 
 // BetweenVisits logo SVG component
@@ -25,27 +26,46 @@ function BetweenVisitsIcon({ size = 40 }) {
   );
 }
 
+// Protected route wrapper
+function ProtectedRoute({ children }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
 function App() {
   return (
-    <BrowserRouter>
-      <div className="app">
-        <Sidebar />
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/triage" element={<TriageQueue />} />
-            <Route path="/patients" element={<PatientList />} />
-            <Route path="/patients/:id" element={<PatientDetail />} />
-            <Route path="/check-in" element={<CheckInForm />} />
-            <Route path="/new-patient" element={<NewPatientForm />} />
-          </Routes>
-        </main>
-      </div>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/*" element={
+            <ProtectedRoute>
+              <div className="app">
+                <Sidebar />
+                <main className="main-content">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/triage" element={<TriageQueue />} />
+                    <Route path="/patients" element={<PatientList />} />
+                    <Route path="/patients/:id" element={<PatientDetail />} />
+                    <Route path="/check-in" element={<CheckInForm />} />
+                    <Route path="/new-patient" element={<NewPatientForm />} />
+                  </Routes>
+                </main>
+              </div>
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
 function Sidebar() {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
   const navItems = [
     { path: '/', icon: Home, label: 'Dashboard' },
     { path: '/triage', icon: AlertCircle, label: 'Triage Queue', badge: true },
@@ -53,6 +73,13 @@ function Sidebar() {
     { path: '/check-in', icon: CheckCircle, label: 'New Check-In' },
     { path: '/new-patient', icon: UserPlus, label: 'New Patient' },
   ];
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
+  const initials = user?.email ? user.email[0].toUpperCase() : '?';
 
   return (
     <aside className="sidebar">
@@ -78,11 +105,20 @@ function Sidebar() {
 
       <div className="sidebar-footer">
         <div className="user-info">
-          <div className="user-avatar">SJ</div>
-          <div>
-            <div className="user-name">Sarah Johnson</div>
+          <div className="user-avatar">{initials}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="user-name" style={{ fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.email}
+            </div>
             <div className="user-role">Care Coordinator</div>
           </div>
+          <button
+            onClick={handleSignOut}
+            title="Sign out"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', padding: '0.25rem', flexShrink: 0 }}
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </div>
     </aside>
@@ -91,11 +127,14 @@ function Sidebar() {
 
 // ==================== DASHBOARD ====================
 function Dashboard() {
+  const { user } = useAuth();
+  const agencyId = user?.id;
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/agencies/${DEMO_AGENCY_ID}/dashboard?days=7`)
+    if (!agencyId) return;
+    fetch(`${API_URL}/api/agencies/${agencyId}/dashboard?days=7`)
       .then(res => res.json())
       .then(data => {
         setOverview(data);
@@ -105,15 +144,10 @@ function Dashboard() {
         console.error('Failed to load dashboard:', err);
         setLoading(false);
       });
-  }, []);
+  }, [agencyId]);
 
-  if (loading) {
-    return <div className="loading">Loading dashboard...</div>;
-  }
-
-  if (!overview) {
-    return <div className="error">Failed to load dashboard data</div>;
-  }
+  if (loading) return <div className="loading">Loading dashboard...</div>;
+  if (!overview) return <div className="error">Failed to load dashboard data</div>;
 
   const riskCounts = overview.riskDistribution ? overview.riskDistribution.reduce((acc, item) => {
     acc[item.risk_level] = parseInt(item.count);
@@ -222,11 +256,14 @@ function Dashboard() {
 
 // ==================== TRIAGE QUEUE ====================
 function TriageQueue() {
+  const { user } = useAuth();
+  const agencyId = user?.id;
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/agencies/${DEMO_AGENCY_ID}/triage-queue`)
+    if (!agencyId) return;
+    fetch(`${API_URL}/api/agencies/${agencyId}/triage-queue`)
       .then(res => res.json())
       .then(data => {
         setAlerts(data);
@@ -236,7 +273,7 @@ function TriageQueue() {
         console.error('Failed to load triage queue:', err);
         setLoading(false);
       });
-  }, []);
+  }, [agencyId]);
 
   if (loading) return <div className="loading">Loading triage queue...</div>;
 
@@ -292,13 +329,16 @@ function TriageQueue() {
 
 // ==================== PATIENT LIST ====================
 function PatientList() {
+  const { user } = useAuth();
+  const agencyId = user?.id;
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
 
   useEffect(() => {
-    fetch(`${API_URL}/api/agencies/${DEMO_AGENCY_ID}/patients`)
+    if (!agencyId) return;
+    fetch(`${API_URL}/api/agencies/${agencyId}/patients`)
       .then(res => res.json())
       .then(data => {
         setPatients(data);
@@ -308,14 +348,12 @@ function PatientList() {
         console.error('Failed to load patients:', err);
         setLoading(false);
       });
-  }, []);
+  }, [agencyId]);
 
   if (loading) return <div className="loading">Loading patients...</div>;
 
-  // Risk level priority for sorting (highest risk first)
   const riskPriority = { critical: 0, elevated: 1, moderate: 2, routine: 3 };
 
-  // Filter by search term
   const filtered = patients.filter(p => {
     const term = searchTerm.toLowerCase();
     if (!term) return true;
@@ -325,7 +363,6 @@ function PatientList() {
     return fullName.includes(term) || conditions.includes(term) || caregiver.includes(term);
   });
 
-  // Sort patients
   const sorted = [...filtered].sort((a, b) => {
     if (sortBy === 'risk') {
       return (riskPriority[a.risk_level] ?? 3) - (riskPriority[b.risk_level] ?? 3);
@@ -333,12 +370,11 @@ function PatientList() {
     if (sortBy === 'last-checkin') {
       const aDate = a.last_check_in ? new Date(a.last_check_in) : new Date(0);
       const bDate = b.last_check_in ? new Date(b.last_check_in) : new Date(0);
-      return aDate - bDate; // oldest first so neglected patients surface
+      return aDate - bDate;
     }
     return `${a.last_name}${a.first_name}`.localeCompare(`${b.last_name}${b.first_name}`);
   });
 
-  // Relative time helper
   function timeAgo(dateStr) {
     if (!dateStr) return 'No check-ins yet';
     const now = new Date();
@@ -478,9 +514,7 @@ function PatientDetail() {
     <div className="patient-detail">
       <header className="page-header">
         <div>
-          <h1 className="page-title">
-            {patient.first_name} {patient.last_name}
-          </h1>
+          <h1 className="page-title">{patient.first_name} {patient.last_name}</h1>
           <span className={`risk-badge large ${patient.risk_level || 'routine'}`}>
             {patient.risk_level || 'routine'} risk
           </span>
@@ -565,6 +599,8 @@ function PatientDetail() {
 
 // ==================== CHECK-IN FORM ====================
 function CheckInForm() {
+  const { user } = useAuth();
+  const agencyId = user?.id;
   const [patients, setPatients] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
@@ -588,11 +624,12 @@ function CheckInForm() {
   });
 
   useEffect(() => {
-    fetch(`${API_URL}/api/agencies/${DEMO_AGENCY_ID}/patients`)
+    if (!agencyId) return;
+    fetch(`${API_URL}/api/agencies/${agencyId}/patients`)
       .then(res => res.json())
       .then(data => setPatients(data))
       .catch(err => console.error('Failed to load patients:', err));
-  }, []);
+  }, [agencyId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -644,7 +681,6 @@ function CheckInForm() {
           <CheckCircle size={64} />
           <h2>Check-In Recorded</h2>
           <p className="result-message">{result.message}</p>
-
           <div className="result-details">
             <h3>Risk Assessment</h3>
             <div className="risk-score">
@@ -653,7 +689,6 @@ function CheckInForm() {
                 {result.riskScore?.level || 'routine'}
               </span>
             </div>
-
             {result.riskScore?.factors?.length > 0 && (
               <div className="risk-factors">
                 <h4>Detected Factors:</h4>
@@ -665,7 +700,6 @@ function CheckInForm() {
               </div>
             )}
           </div>
-
           <div className="result-actions">
             <button className="btn-primary" onClick={() => setResult(null)}>
               Submit Another Check-In
@@ -825,6 +859,8 @@ function CheckInForm() {
 
 // ==================== NEW PATIENT FORM ====================
 function NewPatientForm() {
+  const { user } = useAuth();
+  const agencyId = user?.id;
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -845,7 +881,7 @@ function NewPatientForm() {
     setError(null);
 
     const payload = {
-      agencyId: DEMO_AGENCY_ID,
+      agencyId: agencyId,
       firstName: formData.firstName.trim(),
       lastName: formData.lastName.trim(),
       dateOfBirth: formData.dateOfBirth,
