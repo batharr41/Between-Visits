@@ -42,8 +42,3 @@ export async function authenticateJWT(req, res, next) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 }
-```
-
-Then make sure you have `SUPABASE_URL` set in your Render environment variables. It should be:
-```
-https://pbrcpybukwkkfyxbfdxb.supabase.co
