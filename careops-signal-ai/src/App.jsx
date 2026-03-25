@@ -554,6 +554,10 @@ function PatientDetail() {
               <span className="info-label">Caregiver Phone</span>
               <span className="info-value">{patient.caregiver_phone || 'N/A'}</span>
             </div>
+            <div className="info-item">
+              <span className="info-label">Caregiver Email</span>
+              <span className="info-value">{patient.caregiver_email || 'N/A'}</span>
+            </div>
           </div>
         </div>
 
@@ -883,7 +887,8 @@ function NewPatientForm() {
     medicalConditions: '',
     medications: '',
     caregiverName: '',
-    caregiverPhone: ''
+    caregiverPhone: '',
+    caregiverEmail: ''
   });
 
   const handleSubmit = (e) => {
@@ -903,7 +908,8 @@ function NewPatientForm() {
         ? formData.medications.split(',').map(m => m.trim()).filter(Boolean)
         : [],
       caregiverName: formData.caregiverName.trim() || null,
-      caregiverPhone: formData.caregiverPhone.trim() || null
+      caregiverPhone: formData.caregiverPhone.trim() || null,
+      caregiverEmail: formData.caregiverEmail.trim() || null
     };
 
     authFetch(`${API_URL}/api/patients`, {
@@ -936,7 +942,7 @@ function NewPatientForm() {
             {success.first_name || formData.firstName} {success.last_name || formData.lastName} has been added to your patient directory.
           </p>
           <div className="result-actions">
-            <button className="btn-primary" onClick={() => { setSuccess(null); setFormData({ firstName: '', lastName: '', dateOfBirth: '', medicalConditions: '', medications: '', caregiverName: '', caregiverPhone: '' }); }}>
+            <button className="btn-primary" onClick={() => { setSuccess(null); setFormData({ firstName: '', lastName: '', dateOfBirth: '', medicalConditions: '', medications: '', caregiverName: '', caregiverPhone: '', caregiverEmail: '' }); }}>
               Add Another Patient
             </button>
             <Link to="/patients" className="btn-secondary">
@@ -1007,6 +1013,10 @@ function NewPatientForm() {
               <label>Caregiver Phone</label>
               <input type="tel" value={formData.caregiverPhone} onChange={e => setFormData({...formData, caregiverPhone: e.target.value})} placeholder="e.g., 555-0123" />
             </div>
+          </div>
+          <div className="form-group">
+            <label>Caregiver Email</label>
+            <input type="email" value={formData.caregiverEmail} onChange={e => setFormData({...formData, caregiverEmail: e.target.value})} placeholder="e.g., lisa.chen@email.com" />
           </div>
         </div>
 
