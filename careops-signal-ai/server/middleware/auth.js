@@ -11,7 +11,8 @@ export function authenticateJWT(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET, {
+    const secret = Buffer.from(process.env.SUPABASE_JWT_SECRET, 'base64');
+    const decoded = jwt.verify(token, secret, {
       algorithms: ['HS256']
     });
     req.user = decoded;
