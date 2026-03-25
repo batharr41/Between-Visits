@@ -80,6 +80,7 @@ router.post('/patients', async (req, res) => {
     const date_of_birth = body.date_of_birth || body.dateOfBirth || null;
     const caregiver_name = body.caregiver_name || body.caregiverName || null;
     const caregiver_phone = body.caregiver_phone || body.caregiverPhone || null;
+    const caregiver_email = body.caregiver_email || body.caregiverEmail || null;
 
     // Convert arrays — these are text[] columns in Postgres, not jsonb
     const rawConditions = body.medical_conditions || body.medicalConditions || [];
@@ -96,9 +97,9 @@ router.post('/patients', async (req, res) => {
       `INSERT INTO patients (
         agency_id, first_name, last_name, date_of_birth,
         medical_conditions, medications,
-        caregiver_name, caregiver_phone,
+        caregiver_name, caregiver_phone, caregiver_email,
         risk_level
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *`,
       [
         agency_id,
@@ -109,6 +110,7 @@ router.post('/patients', async (req, res) => {
         medications,
         caregiver_name,
         caregiver_phone,
+        caregiver_email,
         'routine'
       ]
     );
