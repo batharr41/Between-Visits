@@ -5,8 +5,8 @@ export async function sendAlertNotifications({ patient, riskScore, alert }) {
   const results = { email: null, sms: null };
 
   const patientName = `${patient.first_name} ${patient.last_name}`;
-  const severity = riskScore.riskLevel === 'critical' ? '🚨 CRITICAL' : '⚠️ ELEVATED';
-  const factors = riskScore.factors.join(', ');
+  const severity = riskScore.riskLevel === 'critical' ? 'CRITICAL' : 'ELEVATED';
+  const factors = riskScore.factors.slice(0, 3).join(', ');
 
   // Send email if caregiver email exists
   if (patient.caregiver_email) {
@@ -17,16 +17,16 @@ export async function sendAlertNotifications({ patient, riskScore, alert }) {
         patientName,
         severity,
         score: riskScore.score,
-        factors,
+        factors: riskScore.factors.join(', '),
         actionNeeded: alert.action_needed
       });
-      console.log(`📧 Alert email sent to ${patient.caregiver_email} for ${patientName}`);
+      console.log(`Alert email sent to ${patient.caregiver_email} for ${patientName}`);
     } catch (err) {
-      console.error(`📧 Failed to send alert email:`, err.message);
+      console.error(`Failed to send alert email:`, err.message);
       results.email = { error: err.message };
     }
   } else {
-    console.log(`📧 No caregiver email for ${patientName} — skipping email alert`);
+    console.log(`No caregiver email for ${patientName} - skipping email alert`);
   }
 
   // Send SMS if caregiver phone exists
@@ -39,13 +39,13 @@ export async function sendAlertNotifications({ patient, riskScore, alert }) {
         score: riskScore.score,
         factors
       });
-      console.log(`📱 Alert SMS sent to ${patient.caregiver_phone} for ${patientName}`);
+      console.log(`Alert SMS sent to ${patient.caregiver_phone} for ${patientName}`);
     } catch (err) {
-      console.error(`📱 Failed to send alert SMS:`, err.message);
+      console.error(`Failed to send alert SMS:`, err.message);
       results.sms = { error: err.message };
     }
   } else {
-    console.log(`📱 No caregiver phone for ${patientName} — skipping SMS alert`);
+    console.log(`No caregiver phone for ${patientName} - skipping SMS alert`);
   }
 
   return results;
@@ -64,23 +64,23 @@ async function sendEmail({ to, caregiverName, patientName, severity, score, fact
     body: JSON.stringify({
       from: 'BetweenVisits Alerts <onboarding@resend.dev>',
       to: [to],
-      subject: `${severity} Alert — ${patientName}`,
+      subject: `${severity} Alert - ${patientName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: ${severity.includes('CRITICAL') ? '#dc2626' : '#f59e0b'}; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+          <div style="background: ${severity === 'CRITICAL' ? '#dc2626' : '#f59e0b'}; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
             <h1 style="margin: 0; font-size: 22px;">${severity} Alert</h1>
             <p style="margin: 8px 0 0; font-size: 16px;">Patient: ${patientName}</p>
           </div>
           <div style="background: #f8fafc; padding: 24px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;">
             <p style="margin: 0 0 12px;">Dear ${caregiverName},</p>
-            <p style="margin: 0 0 16px;">A recent check-in for <strong>${patientName}</strong> has triggered a <strong>${severity.replace(/[🚨⚠️ ]/g, '').trim()}</strong> risk alert.</p>
+            <p style="margin: 0 0 16px;">A recent check-in for <strong>${patientName}</strong> has triggered a <strong>${severity}</strong> risk alert.</p>
             <div style="background: white; padding: 16px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
               <p style="margin: 0 0 8px;"><strong>Risk Score:</strong> ${score}/100</p>
               <p style="margin: 0 0 8px;"><strong>Risk Factors:</strong> ${factors}</p>
               <p style="margin: 0;"><strong>Action Needed:</strong> ${actionNeeded}</p>
             </div>
             <p style="margin: 0 0 8px;">Please review the patient's status as soon as possible.</p>
-            <p style="margin: 16px 0 0; color: #64748b; font-size: 13px;">— BetweenVisits Early Warning System</p>
+            <p style="margin: 16px 0 0; color: #64748b; font-size: 13px;">- BetweenVisits Early Warning System</p>
           </div>
         </div>
       `
@@ -101,7 +101,7 @@ async function sendSMS({ to, patientName, severity, score, factors }) {
     throw new Error('Twilio credentials not configured');
   }
 
-  // Format phone number — ensure it starts with +1 for US numbers
+  // Format phone number - ensure it starts with +1 for US numbers
   let formattedTo = to.replace(/[^0-9+]/g, '');
   if (!formattedTo.startsWith('+')) {
     if (formattedTo.length === 10) {
@@ -111,7 +111,8 @@ async function sendSMS({ to, patientName, severity, score, factors }) {
     }
   }
 
-  const message = `${severity} — ${patientName}\nRisk Score: ${score}/100\nFactors: ${factors}\n\nPlease check on this patient as soon as possible.\n— BetweenVisits`;
+  // Keep SMS short and use only GSM-7 characters (no emojis)
+  const message = `BetweenVisits ${severity} ALERT: ${patientName} - Score ${score}/100. ${factors}. Please check on patient ASAP.`;
 
   const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
   const credentials = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
