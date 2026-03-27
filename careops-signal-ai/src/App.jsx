@@ -687,6 +687,7 @@ function ReportsPage() {
   const agencyId = '1f027307-125d-4904-8734-0424676a717d';
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reportType, setReportType] = useState('patient');
   const [selectedPatient, setSelectedPatient] = useState('');
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -710,29 +711,35 @@ function ReportsPage() {
   }, [agencyId]);
 
   const handleDownload = async () => {
-    if (!selectedPatient) {
+    if (reportType === 'patient' && !selectedPatient) {
       alert('Please select a patient.');
       return;
     }
     setDownloading(true);
     try {
-      const res = await authFetch(
-        `${API_URL}/api/patients/${selectedPatient}/report?start=${startDate}&end=${endDate}`
-      );
+      let url, filename;
+      if (reportType === 'agency') {
+        url = `${API_URL}/api/agencies/${agencyId}/report?start=${startDate}&end=${endDate}`;
+        filename = `agency-weekly-report-${startDate}-to-${endDate}.pdf`;
+      } else {
+        url = `${API_URL}/api/patients/${selectedPatient}/report?start=${startDate}&end=${endDate}`;
+        const patient = patients.find(p => p.id === selectedPatient);
+        filename = patient
+          ? `${patient.first_name}-${patient.last_name}-report.pdf`
+          : 'patient-report.pdf';
+      }
+
+      const res = await authFetch(url);
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const blob = await res.blob();
-      const patient = patients.find(p => p.id === selectedPatient);
-      const filename = patient
-        ? `${patient.first_name}-${patient.last_name}-report.pdf`
-        : 'patient-report.pdf';
-      const url = window.URL.createObjectURL(blob);
+      const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = blobUrl;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error('Failed to download report:', err);
       alert('Failed to generate report. Please try again.');
@@ -746,25 +753,69 @@ function ReportsPage() {
     <div className="check-in-form-page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Patient Reports</h1>
-          <p className="page-subtitle">Generate and download weekly PDF reports</p>
+          <h1 className="page-title">Reports</h1>
+          <p className="page-subtitle">Generate and download PDF reports</p>
         </div>
       </header>
 
       <div className="check-in-form">
         <div className="form-section">
-          <h3>Generate Report</h3>
-          <div className="form-group">
-            <label>Select Patient *</label>
-            <select value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
-              <option value="">Choose a patient...</option>
-              {patients.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.first_name} {p.last_name} — {p.risk_level || 'routine'} risk
-                </option>
-              ))}
-            </select>
+          <h3>Report Type</h3>
+          <div className="form-row">
+            <div className="form-group">
+              <label>
+                <input
+                  type="radio"
+                  name="reportType"
+                  value="patient"
+                  checked={reportType === 'patient'}
+                  onChange={() => setReportType('patient')}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                Individual Patient Report
+              </label>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0.25rem 0 0 1.5rem' }}>
+                Detailed check-ins, risk scores, and alerts for one patient
+              </p>
+            </div>
+            <div className="form-group">
+              <label>
+                <input
+                  type="radio"
+                  name="reportType"
+                  value="agency"
+                  checked={reportType === 'agency'}
+                  onChange={() => setReportType('agency')}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                Agency Weekly Summary
+              </label>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0.25rem 0 0 1.5rem' }}>
+                Overview of all patients, risk distribution, alerts, and trends
+              </p>
+            </div>
           </div>
+        </div>
+
+        {reportType === 'patient' && (
+          <div className="form-section">
+            <h3>Select Patient</h3>
+            <div className="form-group">
+              <label>Patient *</label>
+              <select value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)}>
+                <option value="">Choose a patient...</option>
+                {patients.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.first_name} {p.last_name} — {p.risk_level || 'routine'} risk
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        <div className="form-section">
+          <h3>Date Range</h3>
           <div className="form-row">
             <div className="form-group">
               <label>Start Date</label>
@@ -781,11 +832,11 @@ function ReportsPage() {
           <button
             onClick={handleDownload}
             className="btn-primary btn-large"
-            disabled={downloading || !selectedPatient}
+            disabled={downloading || (reportType === 'patient' && !selectedPatient)}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
           >
             <Download size={20} />
-            {downloading ? 'Generating PDF...' : 'Download PDF Report'}
+            {downloading ? 'Generating PDF...' : reportType === 'agency' ? 'Download Agency Report' : 'Download Patient Report'}
           </button>
         </div>
       </div>
