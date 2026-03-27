@@ -3,6 +3,7 @@ import checkInController from '../controllers/checkInController.js';
 import dashboardController from '../controllers/dashboardController.js';
 import pool from '../database/pool.js';
 import { authenticateJWT } from '../middleware/auth.js';
+import { generatePatientReport } from '../services/reportService.js';
 
 const router = express.Router();
 
@@ -167,7 +168,32 @@ router.delete('/patients/:id', async (req, res) => {
   }
 });
 
-// Weekly report export
+// GET patient weekly report PDF
+router.get('/patients/:id/report', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { start, end } = req.query;
+
+    // Default to last 7 days if no dates provided
+    const endDate = end ? new Date(end) : new Date();
+    const startDate = start ? new Date(start) : new Date(endDate - 7 * 24 * 60 * 60 * 1000);
+
+    // Set end date to end of day
+    endDate.setHours(23, 59, 59, 999);
+    startDate.setHours(0, 0, 0, 0);
+
+    const pdfBuffer = await generatePatientReport(id, startDate.toISOString(), endDate.toISOString());
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="patient-report-${id}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error generating report:', error);
+    res.status(500).json({ error: 'Failed to generate report: ' + error.message });
+  }
+});
+
+// Weekly report export (JSON)
 router.get('/agencies/:agencyId/reports/weekly', async (req, res) => {
   try {
     const { agencyId } = req.params;
