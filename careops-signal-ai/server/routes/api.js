@@ -123,6 +123,50 @@ router.post('/patients', async (req, res) => {
   }
 });
 
+// DELETE patient and all related data
+router.delete('/patients/:id', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+
+    await client.query('BEGIN');
+
+    // Delete in order of foreign key dependencies
+    await client.query(
+      `DELETE FROM llm_summaries WHERE check_in_id IN (SELECT id FROM check_ins WHERE patient_id = $1)`,
+      [id]
+    );
+    await client.query(
+      `DELETE FROM risk_scores WHERE check_in_id IN (SELECT id FROM check_ins WHERE patient_id = $1)`,
+      [id]
+    );
+    await client.query('DELETE FROM alerts WHERE patient_id = $1', [id]);
+    await client.query('DELETE FROM check_ins WHERE patient_id = $1', [id]);
+
+    const result = await client.query(
+      'DELETE FROM patients WHERE id = $1 RETURNING first_name, last_name',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    await client.query('COMMIT');
+
+    const { first_name, last_name } = result.rows[0];
+    console.log(`Patient deleted: ${first_name} ${last_name} (${id})`);
+    res.json({ message: `${first_name} ${last_name} has been deleted.` });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error deleting patient:', error);
+    res.status(500).json({ error: 'Failed to delete patient: ' + error.message });
+  } finally {
+    client.release();
+  }
+});
+
 // Weekly report export
 router.get('/agencies/:agencyId/reports/weekly', async (req, res) => {
   try {
