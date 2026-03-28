@@ -192,7 +192,6 @@ Built with HIPAA in mind:
 ---
 
 ## 🎯 Roadmap
-
 - [x] Patient check-in submission
 - [x] AI risk scoring via Claude API
 - [x] Agency dashboard with triage queue
@@ -200,11 +199,14 @@ Built with HIPAA in mind:
 - [x] New patient form
 - [x] Patient list with search, sort, and last check-in tracking
 - [x] Supabase Auth (login/signup, JWT-protected API routes)
+- [x] Email/SMS alerts for high-risk check-ins (Resend + Twilio)
+- [x] PDF weekly reports (per-patient and agency-wide)
+- [x] Triage queue with acknowledge/resolve workflow
+- [x] Caregiver assignment to patients
+- [x] Delete patient with cascading data removal
+- [x] Row Level Security on all database tables
 - [ ] Role-based access (family vs caregiver vs admin views)
 - [ ] Multi-agency support (dynamic agency scoping)
-- [ ] Email/SMS alerts for high-risk check-ins
-- [ ] PDF weekly reports per patient
-- [ ] Caregiver assignment and scheduling
 - [ ] Agency self-onboarding
 - [ ] Figma visual redesign
 - [ ] Landing page and pricing page
