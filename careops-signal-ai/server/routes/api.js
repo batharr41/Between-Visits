@@ -13,6 +13,9 @@ router.get('/health', (req, res) => {
 });
 router.use(authenticateJWT);
 
+// Current user profile
+router.get('/me', dashboardController.getCurrentUser);
+
 // Check-in routes
 router.post('/check-ins', checkInController.submitCheckIn);
 router.get('/check-ins/:id', checkInController.getCheckIn);
@@ -23,9 +26,36 @@ router.get('/agencies/:agencyId/dashboard', dashboardController.getDashboardOver
 router.get('/agencies/:agencyId/triage-queue', dashboardController.getTriageQueue);
 router.get('/patients/:patientId/trends', dashboardController.getPatientTrends);
 
+// Staff routes
+router.get('/agencies/:agencyId/staff', dashboardController.getStaffMembers);
+
 // Alert routes
 router.put('/alerts/:alertId/acknowledge', dashboardController.acknowledgeAlert);
 router.put('/alerts/:alertId/resolve', dashboardController.resolveAlert);
+
+// Get resolved alerts history
+router.get('/agencies/:agencyId/alerts/resolved', async (req, res) => {
+  try {
+    const { agencyId } = req.params;
+    const { limit = 20 } = req.query;
+    const result = await pool.query(
+      `SELECT a.*, 
+        p.first_name || ' ' || p.last_name as patient_name,
+        su.first_name as resolved_by_first, su.last_name as resolved_by_last
+       FROM alerts a
+       JOIN patients p ON a.patient_id = p.id
+       LEFT JOIN staff_users su ON a.resolved_by = su.id
+       WHERE p.agency_id = $1 AND a.status = 'resolved'
+       ORDER BY a.resolved_at DESC
+       LIMIT $2`,
+      [agencyId, limit]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching resolved alerts:', error);
+    res.status(500).json({ error: 'Failed to fetch resolved alerts' });
+  }
+});
 
 // Patients routes
 router.get('/agencies/:agencyId/patients', async (req, res) => {
@@ -35,11 +65,13 @@ router.get('/agencies/:agencyId/patients', async (req, res) => {
       `SELECT 
         p.*,
         COUNT(ci.id) as total_check_ins,
-        MAX(ci.submitted_at) as last_check_in
+        MAX(ci.submitted_at) as last_check_in,
+        su.first_name as caregiver_first, su.last_name as caregiver_last
        FROM patients p
        LEFT JOIN check_ins ci ON p.id = ci.patient_id
+       LEFT JOIN staff_users su ON p.assigned_caregiver_id = su.id
        WHERE p.agency_id = $1
-       GROUP BY p.id
+       GROUP BY p.id, su.first_name, su.last_name
        ORDER BY p.last_name, p.first_name`,
       [agencyId]
     );
@@ -54,14 +86,13 @@ router.get('/patients/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      'SELECT * FROM patients WHERE id = $1',
+      `SELECT p.*, su.first_name as assigned_first, su.last_name as assigned_last, su.email as assigned_email
+       FROM patients p
+       LEFT JOIN staff_users su ON p.assigned_caregiver_id = su.id
+       WHERE p.id = $1`,
       [id]
     );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Patient not found' });
-    }
-    
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Patient not found' });
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error fetching patient:', error);
@@ -69,11 +100,31 @@ router.get('/patients/:id', async (req, res) => {
   }
 });
 
+// Assign caregiver to patient
+router.put('/patients/:id/assign', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { caregiverId } = req.body;
+
+    const result = await pool.query(
+      `UPDATE patients SET assigned_caregiver_id = $1 WHERE id = $2 RETURNING *`,
+      [caregiverId || null, id]
+    );
+
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Patient not found' });
+
+    console.log(`Patient ${id} assigned to caregiver ${caregiverId}`);
+    res.json({ success: true, patient: result.rows[0] });
+  } catch (error) {
+    console.error('Error assigning caregiver:', error);
+    res.status(500).json({ error: 'Failed to assign caregiver' });
+  }
+});
+
 // POST create new patient
 router.post('/patients', async (req, res) => {
   try {
     const body = req.body;
-
     const agency_id = body.agency_id || body.agencyId;
     const first_name = body.first_name || body.firstName;
     const last_name = body.last_name || body.lastName;
@@ -81,7 +132,6 @@ router.post('/patients', async (req, res) => {
     const caregiver_name = body.caregiver_name || body.caregiverName || null;
     const caregiver_phone = body.caregiver_phone || body.caregiverPhone || null;
     const caregiver_email = body.caregiver_email || body.caregiverEmail || null;
-
     const rawConditions = body.medical_conditions || body.medicalConditions || [];
     const rawMedications = body.medications || [];
     const medical_conditions = Array.isArray(rawConditions) ? rawConditions : [];
@@ -99,12 +149,8 @@ router.post('/patients', async (req, res) => {
         risk_level
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *`,
-      [
-        agency_id, first_name, last_name, date_of_birth,
-        medical_conditions, medications,
-        caregiver_name, caregiver_phone, caregiver_email,
-        'routine'
-      ]
+      [agency_id, first_name, last_name, date_of_birth, medical_conditions, medications,
+       caregiver_name, caregiver_phone, caregiver_email, 'routine']
     );
 
     console.log(`New patient created: ${first_name} ${last_name} (${result.rows[0].id})`);
@@ -126,10 +172,7 @@ router.delete('/patients/:id', async (req, res) => {
     await client.query('DELETE FROM alerts WHERE patient_id = $1', [id]);
     await client.query('DELETE FROM check_ins WHERE patient_id = $1', [id]);
     const result = await client.query('DELETE FROM patients WHERE id = $1 RETURNING first_name, last_name', [id]);
-    if (result.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Patient not found' });
-    }
+    if (result.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Patient not found' }); }
     await client.query('COMMIT');
     const { first_name, last_name } = result.rows[0];
     console.log(`Patient deleted: ${first_name} ${last_name} (${id})`);
@@ -187,20 +230,12 @@ router.get('/agencies/:agencyId/reports/weekly', async (req, res) => {
     const { agencyId } = req.params;
     const { startDate, endDate } = req.query;
     const result = await pool.query(
-      `SELECT 
-        p.first_name || ' ' || p.last_name as patient_name,
-        COUNT(ci.id) as check_ins_count,
-        AVG(rs.score) as avg_risk_score,
-        COUNT(CASE WHEN a.severity IN ('critical', 'elevated') THEN 1 END) as alerts_count,
+      `SELECT p.first_name || ' ' || p.last_name as patient_name, COUNT(ci.id) as check_ins_count,
+        AVG(rs.score) as avg_risk_score, COUNT(CASE WHEN a.severity IN ('critical', 'elevated') THEN 1 END) as alerts_count,
         STRING_AGG(DISTINCT rs.risk_level, ', ') as risk_levels
-       FROM patients p
-       LEFT JOIN check_ins ci ON p.id = ci.patient_id 
-         AND ci.submitted_at BETWEEN $2 AND $3
-       LEFT JOIN risk_scores rs ON ci.id = rs.check_in_id
-       LEFT JOIN alerts a ON ci.id = a.check_in_id
-       WHERE p.agency_id = $1
-       GROUP BY p.id, patient_name
-       ORDER BY alerts_count DESC, avg_risk_score DESC`,
+       FROM patients p LEFT JOIN check_ins ci ON p.id = ci.patient_id AND ci.submitted_at BETWEEN $2 AND $3
+       LEFT JOIN risk_scores rs ON ci.id = rs.check_in_id LEFT JOIN alerts a ON ci.id = a.check_in_id
+       WHERE p.agency_id = $1 GROUP BY p.id, patient_name ORDER BY alerts_count DESC, avg_risk_score DESC`,
       [agencyId, startDate, endDate]
     );
     res.json({
