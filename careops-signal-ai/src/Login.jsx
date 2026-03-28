@@ -38,7 +38,7 @@ export default function Login() {
         setError(error.message);
         setLoading(false);
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     } else {
       const { error } = await signUp(email, password);
