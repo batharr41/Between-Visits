@@ -1,102 +1,110 @@
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
+import express from 'express';
+import checkInController from '../controllers/checkInController.js';
+import dashboardController from '../controllers/dashboardController.js';
 import pool from '../database/pool.js';
+import { authenticateJWT, requireRole } from '../middleware/auth.js';
+import { generatePatientReport, generateAgencyReport } from '../services/reportService.js';
 
-let cachedKey = null;
+const router = express.Router();
 
-async function getSupabasePublicKey() {
-  if (cachedKey) return cachedKey;
+router.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+router.use(authenticateJWT);
 
-  const jwksUrl = `${process.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`;
-  console.log('Fetching JWKS from:', jwksUrl);
-  const response = await fetch(jwksUrl);
-  const jwks = await response.json();
-  console.log('JWKS response:', JSON.stringify(jwks));
-
-  if (!jwks.keys || jwks.keys.length === 0) {
-    throw new Error('No keys found in JWKS endpoint');
-  }
-
-  const key = jwks.keys[0];
-  const publicKey = crypto.createPublicKey({
-    key: key,
-    format: 'jwk'
-  });
-
-  cachedKey = publicKey;
-  return publicKey;
-}
-
-export async function authenticateJWT(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.startsWith('Bearer ')
-    ? authHeader.slice(7)
-    : null;
-
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
+router.get('/me', async (req, res) => {
   try {
-    const publicKey = await getSupabasePublicKey();
-    const decoded = jwt.verify(token, publicKey, {
-      algorithms: ['ES256']
-    });
-    req.user = decoded;
-
-    // Look up staff user to attach role and agency_id
+    const userEmail = req.user?.email;
+    if (!userEmail) return res.status(401).json({ error: 'No user email in token' });
     const staffResult = await pool.query(
-      'SELECT id, agency_id, role, first_name, last_name FROM staff_users WHERE email = $1',
-      [decoded.email]
+      'SELECT id, agency_id, email, first_name, last_name, role FROM staff_users WHERE email = $1',
+      [userEmail]
     );
-
     if (staffResult.rows.length > 0) {
-      req.staffUser = staffResult.rows[0];
-      req.userRole = staffResult.rows[0].role;
-      req.agencyId = staffResult.rows[0].agency_id;
-    } else {
-      // Check if they are a family user
-      const familyResult = await pool.query(
-        'SELECT id, agency_id, patient_id, first_name, last_name FROM family_users WHERE email = $1',
-        [decoded.email]
-      );
+      return res.json(staffResult.rows[0]);
+    }
+    const familyResult = await pool.query(
+      'SELECT id, agency_id, patient_id, email, first_name, last_name, relationship FROM family_users WHERE email = $1',
+      [userEmail]
+    );
+    if (familyResult.rows.length > 0) {
+      return res.json({ ...familyResult.rows[0], role: 'family' });
+    }
+    return res.status(404).json({ error: 'User not found' });
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
 
-      if (familyResult.rows.length > 0) {
-        req.familyUser = familyResult.rows[0];
-        req.userRole = 'family';
-        req.agencyId = familyResult.rows[0].agency_id;
-        req.linkedPatientId = familyResult.rows[0].patient_id;
-      } else {
-        req.userRole = null;
-        req.agencyId = null;
+router.post('/check-ins', requireRole('admin', 'caregiver'), checkInController.submitCheckIn);
+router.get('/check-ins/:id', checkInController.getCheckIn);
+router.get('/patients/:patientId/check-ins', checkInController.getPatientCheckIns);
+
+router.get('/agencies/:agencyId/dashboard', requireRole('admin', 'caregiver'), dashboardController.getDashboardOverview);
+router.get('/agencies/:agencyId/triage-queue', requireRole('admin', 'caregiver'), dashboardController.getTriageQueue);
+router.get('/patients/:patientId/trends', dashboardController.getPatientTrends);
+
+router.get('/agencies/:agencyId/staff', requireRole('admin'), dashboardController.getStaffMembers);
+
+router.put('/alerts/:alertId/acknowledge', requireRole('admin', 'caregiver'), dashboardController.acknowledgeAlert);
+router.put('/alerts/:alertId/resolve', requireRole('admin', 'caregiver'), dashboardController.resolveAlert);
+
+router.get('/agencies/:agencyId/alerts/resolved', requireRole('admin', 'caregiver'), async (req, res) => {
+  try {
+    const { agencyId } = req.params;
+    const { limit = 20 } = req.query;
+    const result = await pool.query(
+      `SELECT a.*, p.first_name || ' ' || p.last_name as patient_name, su.first_name as resolved_by_first, su.last_name as resolved_by_last FROM alerts a JOIN patients p ON a.patient_id = p.id LEFT JOIN staff_users su ON a.resolved_by = su.id WHERE p.agency_id = $1 AND a.status = 'resolved' ORDER BY a.resolved_at DESC LIMIT $2`,
+      [agencyId, limit]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching resolved alerts:', error);
+    res.status(500).json({ error: 'Failed to fetch resolved alerts' });
+  }
+});
+
+router.get('/agencies/:agencyId/patients', requireRole('admin', 'caregiver'), async (req, res) => {
+  try {
+    const { agencyId } = req.params;
+    let whereClause = 'WHERE p.agency_id = $1';
+    const params = [agencyId];
+    if (req.userRole === 'caregiver' && req.staffUser) {
+      whereClause += ' AND p.assigned_caregiver_id = $2';
+      params.push(req.staffUser.id);
+    }
+    const result = await pool.query(
+      `SELECT p.*, COUNT(ci.id) as total_check_ins, MAX(ci.submitted_at) as last_check_in, su.first_name as caregiver_first, su.last_name as caregiver_last FROM patients p LEFT JOIN check_ins ci ON p.id = ci.patient_id LEFT JOIN staff_users su ON p.assigned_caregiver_id = su.id ${whereClause} GROUP BY p.id, su.first_name, su.last_name ORDER BY p.last_name, p.first_name`,
+      params
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching patients:', error);
+    res.status(500).json({ error: 'Failed to fetch patients' });
+  }
+});
+
+router.get('/patients/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (req.userRole === 'family' && req.linkedPatientId !== id) {
+      return res.status(403).json({ error: 'Access denied - you can only view your linked patient' });
+    }
+    if (req.userRole === 'caregiver' && req.staffUser) {
+      const check = await pool.query('SELECT id FROM patients WHERE id = $1 AND assigned_caregiver_id = $2', [id, req.staffUser.id]);
+      if (check.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied - patient not assigned to you' });
       }
     }
-
-    next();
-  } catch (err) {
-    console.log('JWT VERIFY FAILED:', err.message);
-    return res.status(401).json({ error: 'Invalid token' });
+    const result = await pool.query(
+      `SELECT p.*, su.first_name as assigned_first, su.last_name as assigned_last, su.email as assigned_email FROM patients p LEFT JOIN staff_users su ON p.assigned_caregiver_id = su.id WHERE p.id = $1`,
+      [id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Patient not found' });
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching patient:', error);
+    res.status(500).json({ error: 'Failed to fetch patient' });
   }
-}
-
-// Middleware factory: restrict routes to specific roles
-// Usage: router.delete('/patients/:id', requireRole('admin'), handler)
-export function requireRole(...allowedRoles) {
-  return (req, res, next) => {
-    if (!req.userRole) {
-      return res.status(403).json({ error: 'No role assigned to this user' });
-    }
-
-    if (!allowedRoles.includes(req.userRole)) {
-      return res.status(403).json({
-        error: 'Access denied',
-        message: 'This action requires one of these roles: ' + allowedRoles.join(', '),
-        yourRole: req.userRole
-      });
-    }
-
-    next();
-  };
-}
-
-export default router;
+});
