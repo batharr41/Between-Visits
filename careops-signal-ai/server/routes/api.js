@@ -98,3 +98,5 @@ export function requireRole(...allowedRoles) {
     next();
   };
 }
+
+export default router;
