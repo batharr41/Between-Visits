@@ -12,6 +12,15 @@ router.get('/health', (req, res) => {
 });
 router.use(authenticateJWT);
 
+// Middleware: enforce that :agencyId in URL matches the user's agency
+function enforceAgencyScope(req, res, next) {
+  var urlAgencyId = req.params.agencyId;
+  if (urlAgencyId && req.agencyId && urlAgencyId !== req.agencyId) {
+    return res.status(403).json({ error: 'Access denied - you do not belong to this agency' });
+  }
+  next();
+}
+
 router.get('/me', async (req, res) => {
   try {
     const userEmail = req.user?.email;
@@ -41,16 +50,16 @@ router.post('/check-ins', requireRole('admin', 'caregiver'), checkInController.s
 router.get('/check-ins/:id', checkInController.getCheckIn);
 router.get('/patients/:patientId/check-ins', checkInController.getPatientCheckIns);
 
-router.get('/agencies/:agencyId/dashboard', requireRole('admin', 'caregiver'), dashboardController.getDashboardOverview);
-router.get('/agencies/:agencyId/triage-queue', requireRole('admin', 'caregiver'), dashboardController.getTriageQueue);
+router.get('/agencies/:agencyId/dashboard', requireRole('admin', 'caregiver'), enforceAgencyScope, dashboardController.getDashboardOverview);
+router.get('/agencies/:agencyId/triage-queue', requireRole('admin', 'caregiver'), enforceAgencyScope, dashboardController.getTriageQueue);
 router.get('/patients/:patientId/trends', dashboardController.getPatientTrends);
 
-router.get('/agencies/:agencyId/staff', requireRole('admin'), dashboardController.getStaffMembers);
+router.get('/agencies/:agencyId/staff', requireRole('admin'), enforceAgencyScope, dashboardController.getStaffMembers);
 
 router.put('/alerts/:alertId/acknowledge', requireRole('admin', 'caregiver'), dashboardController.acknowledgeAlert);
 router.put('/alerts/:alertId/resolve', requireRole('admin', 'caregiver'), dashboardController.resolveAlert);
 
-router.get('/agencies/:agencyId/alerts/resolved', requireRole('admin', 'caregiver'), async (req, res) => {
+router.get('/agencies/:agencyId/alerts/resolved', requireRole('admin', 'caregiver'), enforceAgencyScope, async (req, res) => {
   try {
     const { agencyId } = req.params;
     const { limit = 20 } = req.query;
@@ -65,7 +74,7 @@ router.get('/agencies/:agencyId/alerts/resolved', requireRole('admin', 'caregive
   }
 });
 
-router.get('/agencies/:agencyId/patients', requireRole('admin', 'caregiver'), async (req, res) => {
+router.get('/agencies/:agencyId/patients', requireRole('admin', 'caregiver'), enforceAgencyScope, async (req, res) => {
   try {
     const { agencyId } = req.params;
     let whereClause = 'WHERE p.agency_id = $1';
@@ -128,7 +137,7 @@ router.put('/patients/:id/assign', requireRole('admin'), async (req, res) => {
 router.post('/patients', requireRole('admin'), async (req, res) => {
   try {
     const body = req.body;
-    const agency_id = body.agency_id || body.agencyId;
+    const agency_id = req.agencyId;
     const first_name = body.first_name || body.firstName;
     const last_name = body.last_name || body.lastName;
     const date_of_birth = body.date_of_birth || body.dateOfBirth || null;
@@ -140,7 +149,7 @@ router.post('/patients', requireRole('admin'), async (req, res) => {
     const medical_conditions = Array.isArray(rawConditions) ? rawConditions : [];
     const medications = Array.isArray(rawMedications) ? rawMedications : [];
     if (!agency_id || !first_name || !last_name) {
-      return res.status(400).json({ error: 'agency_id, first_name, and last_name are required' });
+      return res.status(400).json({ error: 'first_name and last_name are required' });
     }
     const result = await pool.query(
       `INSERT INTO patients (agency_id, first_name, last_name, date_of_birth, medical_conditions, medications, caregiver_name, caregiver_phone, caregiver_email, risk_level) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
@@ -192,7 +201,7 @@ router.get('/patients/:id/report', requireRole('admin', 'caregiver'), async (req
   }
 });
 
-router.get('/agencies/:agencyId/report', requireRole('admin'), async (req, res) => {
+router.get('/agencies/:agencyId/report', requireRole('admin'), enforceAgencyScope, async (req, res) => {
   try {
     const { agencyId } = req.params;
     const { start, end } = req.query;
@@ -209,7 +218,7 @@ router.get('/agencies/:agencyId/report', requireRole('admin'), async (req, res) 
   }
 });
 
-router.get('/agencies/:agencyId/reports/weekly', requireRole('admin'), async (req, res) => {
+router.get('/agencies/:agencyId/reports/weekly', requireRole('admin'), enforceAgencyScope, async (req, res) => {
   try {
     const { agencyId } = req.params;
     const { startDate, endDate } = req.query;
