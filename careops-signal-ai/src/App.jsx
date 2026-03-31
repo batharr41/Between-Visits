@@ -162,7 +162,7 @@ function Sidebar({ isOpen, onClose }) {
 // ==================== DASHBOARD ====================
 function Dashboard() {
   var { user, isAdmin, demoMode, agencyId } = useAuth();
-  var effectiveAgencyId = agencyId || '1f027307-125d-4904-8734-0424676a717d';
+  var effectiveAgencyId = agencyId;
   var _overview = useState(null); var overview = _overview[0], setOverview = _overview[1];
   var _loading = useState(true); var loading = _loading[0], setLoading = _loading[1];
 
@@ -225,7 +225,7 @@ function Dashboard() {
 // ==================== TRIAGE QUEUE ====================
 function TriageQueue() {
   var { user, demoMode, agencyId: authAgencyId } = useAuth();
-  var agencyId = authAgencyId || '1f027307-125d-4904-8734-0424676a717d';
+  var agencyId = authAgencyId;
   var _alerts = useState([]); var alerts = _alerts[0], setAlerts = _alerts[1];
   var _loading = useState(true); var loading = _loading[0], setLoading = _loading[1];
   var _resolvingId = useState(null); var resolvingId = _resolvingId[0], setResolvingId = _resolvingId[1];
@@ -302,7 +302,7 @@ function TriageQueue() {
 // ==================== PATIENT LIST ====================
 function PatientList() {
   var { user, isAdmin, demoMode, agencyId: authAgencyId } = useAuth();
-  var agencyId = authAgencyId || '1f027307-125d-4904-8734-0424676a717d';
+  var agencyId = authAgencyId;
   var _patients = useState([]); var patients = _patients[0], setPatients = _patients[1];
   var _loading = useState(true); var loading = _loading[0], setLoading = _loading[1];
   var _searchTerm = useState(''); var searchTerm = _searchTerm[0], setSearchTerm = _searchTerm[1];
@@ -390,7 +390,7 @@ function PatientList() {
 function PatientDetail() {
   var { id } = useParams(); var navigate = useNavigate();
   var { isAdmin, demoMode, agencyId: authAgencyId } = useAuth();
-  var agencyId = authAgencyId || '1f027307-125d-4904-8734-0424676a717d';
+  var agencyId = authAgencyId;
   var _patient = useState(null); var patient = _patient[0], setPatient = _patient[1];
   var _checkIns = useState([]); var checkIns = _checkIns[0], setCheckIns = _checkIns[1];
   var _staffMembers = useState([]); var staffMembers = _staffMembers[0], setStaffMembers = _staffMembers[1];
@@ -517,7 +517,7 @@ function PatientDetail() {
 // ==================== REPORTS PAGE ====================
 function ReportsPage() {
   var { isAdmin, demoMode, agencyId: authAgencyId } = useAuth();
-  var agencyId = authAgencyId || '1f027307-125d-4904-8734-0424676a717d';
+  var agencyId = authAgencyId;
   var _patients = useState([]); var patients = _patients[0], setPatients = _patients[1];
   var _loading = useState(true); var loading = _loading[0], setLoading = _loading[1];
   var _reportType = useState('patient'); var reportType = _reportType[0], setReportType = _reportType[1];
@@ -575,7 +575,7 @@ function ReportsPage() {
 // ==================== CHECK-IN FORM ====================
 function CheckInForm() {
   var { user, demoMode, agencyId: authAgencyId } = useAuth();
-  var agencyId = authAgencyId || '1f027307-125d-4904-8734-0424676a717d';
+  var agencyId = authAgencyId;
   var _patients = useState([]); var patients = _patients[0], setPatients = _patients[1];
   var _submitting = useState(false); var submitting = _submitting[0], setSubmitting = _submitting[1];
   var _result = useState(null); var result = _result[0], setResult = _result[1];
@@ -661,7 +661,7 @@ function CheckInForm() {
 // ==================== NEW PATIENT FORM ====================
 function NewPatientForm() {
   var { user, demoMode, agencyId: authAgencyId } = useAuth();
-  var agencyId = authAgencyId || '1f027307-125d-4904-8734-0424676a717d';
+  var agencyId = authAgencyId;
   var navigate = useNavigate();
   var _submitting = useState(false); var submitting = _submitting[0], setSubmitting = _submitting[1];
   var _error = useState(null); var error = _error[0], setError = _error[1];
