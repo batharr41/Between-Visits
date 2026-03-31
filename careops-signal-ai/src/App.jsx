@@ -61,9 +61,128 @@ function DemoBanner() {
 }
 
 function ProtectedRoute({ children }) {
-  var { user, demoMode } = useAuth();
+  var { user, demoMode, needsOnboarding } = useAuth();
   if (!user && !demoMode) return <Navigate to="/login" replace />;
+  if (needsOnboarding && !demoMode) return <Navigate to="/onboarding" replace />;
   return children;
+}
+
+// ==================== ONBOARDING SCREEN ====================
+function OnboardingScreen() {
+  var { user, refreshProfile } = useAuth();
+  var navigate = useNavigate();
+  var _agencyName = useState('');
+  var agencyName = _agencyName[0], setAgencyName = _agencyName[1];
+  var _firstName = useState('');
+  var firstName = _firstName[0], setFirstName = _firstName[1];
+  var _lastName = useState('');
+  var lastName = _lastName[0], setLastName = _lastName[1];
+  var _submitting = useState(false);
+  var submitting = _submitting[0], setSubmitting = _submitting[1];
+  var _error = useState(null);
+  var error = _error[0], setError = _error[1];
+
+  var handleSubmit = function(e) {
+    e.preventDefault();
+    if (!agencyName.trim()) { setError('Agency name is required'); return; }
+    setSubmitting(true);
+    setError(null);
+
+    supabase.auth.getSession().then(function(result) {
+      var session = result.data.session;
+      return fetch(API_URL + '/api/onboarding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + (session ? session.access_token : '')
+        },
+        body: JSON.stringify({
+          agencyName: agencyName.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim()
+        })
+      });
+    }).then(function(res) {
+      if (!res.ok) return res.json().then(function(data) { throw new Error(data.error || 'Onboarding failed'); });
+      return res.json();
+    }).then(function() {
+      return refreshProfile();
+    }).then(function() {
+      navigate('/dashboard');
+    }).catch(function(err) {
+      console.error('Onboarding failed:', err);
+      setError(err.message || 'Something went wrong. Please try again.');
+      setSubmitting(false);
+    });
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+      <div style={{ background: 'white', borderRadius: '1.5rem', padding: '3rem', maxWidth: '500px', width: '100%', boxShadow: 'var(--shadow-xl)' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <BetweenVisitsIcon size={56} />
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem', marginTop: '1rem', color: 'var(--text)' }}>Welcome to BetweenVisits</h1>
+          <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Set up your agency to get started</p>
+        </div>
+
+        {error && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1.5rem', color: 'var(--red)', fontSize: '0.875rem' }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9375rem', marginBottom: '0.5rem', color: 'var(--text)' }}>Agency Name *</label>
+            <input
+              type="text"
+              value={agencyName}
+              onChange={function(e) { setAgencyName(e.target.value); }}
+              placeholder="e.g., Sunrise Home Care"
+              required
+              style={{ width: '100%', padding: '0.75rem 1rem', border: '2px solid var(--border)', borderRadius: '0.75rem', fontSize: '0.9375rem', fontFamily: 'inherit', color: 'var(--text)' }}
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9375rem', marginBottom: '0.5rem', color: 'var(--text)' }}>Your First Name</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={function(e) { setFirstName(e.target.value); }}
+                placeholder="e.g., Sarah"
+                style={{ width: '100%', padding: '0.75rem 1rem', border: '2px solid var(--border)', borderRadius: '0.75rem', fontSize: '0.9375rem', fontFamily: 'inherit', color: 'var(--text)' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9375rem', marginBottom: '0.5rem', color: 'var(--text)' }}>Your Last Name</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={function(e) { setLastName(e.target.value); }}
+                placeholder="e.g., Johnson"
+                style={{ width: '100%', padding: '0.75rem 1rem', border: '2px solid var(--border)', borderRadius: '0.75rem', fontSize: '0.9375rem', fontFamily: 'inherit', color: 'var(--text)' }}
+              />
+            </div>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+            Signed in as {user ? user.email : ''}
+          </p>
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{
+              width: '100%', padding: '0.875rem', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+              color: 'white', border: 'none', borderRadius: '0.75rem', fontSize: '1rem', fontWeight: 600,
+              cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.6 : 1, fontFamily: 'inherit'
+            }}
+          >
+            {submitting ? 'Setting up your agency...' : 'Create My Agency'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 function AppShell() {
@@ -98,6 +217,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LandingPage />} />
+          <Route path="/onboarding" element={<OnboardingScreen />} />
           <Route path="/dashboard/*" element={<ProtectedRoute><AppShell /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
