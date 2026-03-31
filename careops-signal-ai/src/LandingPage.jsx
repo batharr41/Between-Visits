@@ -128,7 +128,7 @@ function LoginPanel({ isOpen, onClose }) {
                 onChange={function(e) { setPassword(e.target.value); }}
                 placeholder="--------"
                 required
-                minLength={10}
+                minLength={mode === "signup" ? 10 : 1}
               />
               {mode === 'signup' && password.length > 0 && (
                 <div className="password-strength">
