@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import {
   Activity, AlertCircle, CheckCircle, Shield, FileText,
   Bell, Users, ChevronRight, ArrowRight, Heart, Clock,
-  Smartphone, BarChart3, Zap, X
+  Smartphone, BarChart3, Zap, X, Eye
 } from 'lucide-react';
 import './Landing.css';
 
@@ -24,7 +24,7 @@ function BetweenVisitsLogo({ size = 48 }) {
 
 function getPasswordStrength(password) {
   if (!password) return { level: 0, label: '', color: '' };
-  let score = 0;
+  var score = 0;
   if (password.length >= 6) score++;
   if (password.length >= 8) score++;
   if (/[A-Z]/.test(password)) score++;
@@ -39,28 +39,35 @@ function getPasswordStrength(password) {
 }
 
 function LoginPanel({ isOpen, onClose }) {
-  const { signIn, signUp } = useAuth();
-  const navigate = useNavigate();
-  const [mode, setMode] = useState('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [message, setMessage] = useState(null);
+  var { signIn, signUp } = useAuth();
+  var navigate = useNavigate();
+  var _mode = useState('login');
+  var mode = _mode[0], setMode = _mode[1];
+  var _email = useState('');
+  var email = _email[0], setEmail = _email[1];
+  var _password = useState('');
+  var password = _password[0], setPassword = _password[1];
+  var _rememberMe = useState(false);
+  var rememberMe = _rememberMe[0], setRememberMe = _rememberMe[1];
+  var _loading = useState(false);
+  var loading = _loading[0], setLoading = _loading[1];
+  var _error = useState(null);
+  var error = _error[0], setError = _error[1];
+  var _message = useState(null);
+  var message = _message[0], setMessage = _message[1];
 
-  const strength = getPasswordStrength(password);
+  var strength = getPasswordStrength(password);
 
-  const handleSubmit = async (e) => {
+  var handleSubmit = async function(e) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setMessage(null);
 
     if (mode === 'login') {
-      const { error } = await signIn(email, password);
-      if (error) {
-        setError(error.message);
+      var result = await signIn(email, password);
+      if (result.error) {
+        setError(result.error.message);
         setLoading(false);
       } else {
         navigate('/dashboard');
@@ -71,9 +78,9 @@ function LoginPanel({ isOpen, onClose }) {
         setLoading(false);
         return;
       }
-      const { error } = await signUp(email, password);
-      if (error) {
-        setError(error.message);
+      var result2 = await signUp(email, password);
+      if (result2.error) {
+        setError(result2.error.message);
         setLoading(false);
       } else {
         setMessage('Account created! Check your email to confirm, then log in.');
@@ -85,8 +92,8 @@ function LoginPanel({ isOpen, onClose }) {
 
   return (
     <>
-      <div className={`login-overlay ${isOpen ? 'open' : ''}`} onClick={onClose} />
-      <div className={`login-panel ${isOpen ? 'open' : ''}`}>
+      <div className={'login-overlay ' + (isOpen ? 'open' : '')} onClick={onClose} />
+      <div className={'login-panel ' + (isOpen ? 'open' : '')}>
         <button className="login-panel-close" onClick={onClose}>
           <X size={24} />
         </button>
@@ -109,7 +116,7 @@ function LoginPanel({ isOpen, onClose }) {
               <input
                 type="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={function(e) { setEmail(e.target.value); }}
                 placeholder="you@agency.com"
                 required
               />
@@ -119,7 +126,7 @@ function LoginPanel({ isOpen, onClose }) {
               <input
                 type="password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={function(e) { setPassword(e.target.value); }}
                 placeholder="--------"
                 required
                 minLength={6}
@@ -127,15 +134,17 @@ function LoginPanel({ isOpen, onClose }) {
               {mode === 'signup' && password.length > 0 && (
                 <div className="password-strength">
                   <div className="strength-bars">
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <div
-                        key={i}
-                        className="strength-bar"
-                        style={{
-                          background: i <= strength.level ? strength.color : '#e2e8f0'
-                        }}
-                      />
-                    ))}
+                    {[1, 2, 3, 4, 5].map(function(i) {
+                      return (
+                        <div
+                          key={i}
+                          className="strength-bar"
+                          style={{
+                            background: i <= strength.level ? strength.color : '#e2e8f0'
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                   <span className="strength-label" style={{ color: strength.color }}>
                     {strength.label}
@@ -152,7 +161,7 @@ function LoginPanel({ isOpen, onClose }) {
                 <input
                   type="checkbox"
                   checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
+                  onChange={function(e) { setRememberMe(e.target.checked); }}
                 />
                 <span>Remember me</span>
               </label>
@@ -170,7 +179,7 @@ function LoginPanel({ isOpen, onClose }) {
           <p className="login-toggle">
             {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
             <button
-              onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); setMessage(null); }}
+              onClick={function() { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); setMessage(null); }}
               className="login-toggle-btn"
             >
               {mode === 'login' ? 'Sign Up' : 'Sign In'}
@@ -183,24 +192,31 @@ function LoginPanel({ isOpen, onClose }) {
 }
 
 export default function LandingPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [loginOpen, setLoginOpen] = useState(false);
+  var { user, startDemo } = useAuth();
+  var navigate = useNavigate();
+  var _searchParams = useSearchParams();
+  var searchParams = _searchParams[0];
+  var _loginOpen = useState(false);
+  var loginOpen = _loginOpen[0], setLoginOpen = _loginOpen[1];
 
-  useEffect(() => {
+  useEffect(function() {
     if (user) navigate('/dashboard');
   }, [user, navigate]);
 
-  useEffect(() => {
+  useEffect(function() {
     if (searchParams.get('login') !== null || window.location.pathname === '/login') {
       setLoginOpen(true);
     }
   }, [searchParams]);
 
+  function handleTryDemo() {
+    startDemo();
+    navigate('/dashboard');
+  }
+
   return (
     <div className="landing">
-      <LoginPanel isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
+      <LoginPanel isOpen={loginOpen} onClose={function() { setLoginOpen(false); }} />
 
       <nav className="landing-nav">
         <div className="landing-nav-inner">
@@ -212,7 +228,26 @@ export default function LandingPage() {
             <a href="#features">Features</a>
             <a href="#how-it-works">How It Works</a>
             <a href="#pricing">Pricing</a>
-            <button onClick={() => setLoginOpen(true)} className="landing-nav-cta">
+            <button
+              onClick={handleTryDemo}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'white',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem'
+              }}
+            >
+              <Eye size={16} />
+              Try Demo
+            </button>
+            <button onClick={function() { setLoginOpen(true); }} className="landing-nav-cta">
               Get Started
             </button>
           </div>
@@ -229,12 +264,13 @@ export default function LandingPage() {
             home care agencies and assisted living facilities.
           </p>
           <div className="hero-actions">
-            <button onClick={() => setLoginOpen(true)} className="hero-btn-primary">
+            <button onClick={function() { setLoginOpen(true); }} className="hero-btn-primary">
               Start Free Trial <ArrowRight size={20} />
             </button>
-            <a href="#how-it-works" className="hero-btn-secondary">
-              See How It Works
-            </a>
+            <button onClick={handleTryDemo} className="hero-btn-secondary" style={{ cursor: 'pointer', background: 'none', border: '2px solid rgba(255,255,255,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Eye size={18} />
+              Try Live Demo
+            </button>
           </div>
           <div className="hero-stats">
             <div className="hero-stat">
@@ -345,7 +381,7 @@ export default function LandingPage() {
                 <li><CheckCircle size={16} /> PDF reports</li>
                 <li><CheckCircle size={16} /> 2 staff accounts</li>
               </ul>
-              <button onClick={() => setLoginOpen(true)} className="pricing-btn">Get Started</button>
+              <button onClick={function() { setLoginOpen(true); }} className="pricing-btn">Get Started</button>
             </div>
             <div className="pricing-card popular">
               <div className="popular-badge">Most Popular</div>
@@ -363,7 +399,7 @@ export default function LandingPage() {
                 <li><CheckCircle size={16} /> 10 staff accounts</li>
                 <li><CheckCircle size={16} /> Priority support</li>
               </ul>
-              <button onClick={() => setLoginOpen(true)} className="pricing-btn popular">Start Free Trial</button>
+              <button onClick={function() { setLoginOpen(true); }} className="pricing-btn popular">Start Free Trial</button>
             </div>
             <div className="pricing-card">
               <div className="pricing-tier">Enterprise</div>
@@ -381,7 +417,7 @@ export default function LandingPage() {
                 <li><CheckCircle size={16} /> Dedicated support</li>
                 <li><CheckCircle size={16} /> Custom integrations</li>
               </ul>
-              <button onClick={() => setLoginOpen(true)} className="pricing-btn">Contact Sales</button>
+              <button onClick={function() { setLoginOpen(true); }} className="pricing-btn">Contact Sales</button>
             </div>
           </div>
         </div>
@@ -391,9 +427,15 @@ export default function LandingPage() {
         <div className="section-inner">
           <h2>Ready to Protect Your Patients?</h2>
           <p>Join home care agencies and assisted living facilities using AI to catch health risks early.</p>
-          <button onClick={() => setLoginOpen(true)} className="hero-btn-primary">
-            Start Your Free Trial <ArrowRight size={20} />
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={function() { setLoginOpen(true); }} className="hero-btn-primary">
+              Start Your Free Trial <ArrowRight size={20} />
+            </button>
+            <button onClick={handleTryDemo} className="hero-btn-secondary" style={{ cursor: 'pointer', background: 'none', border: '2px solid rgba(255,255,255,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Eye size={18} />
+              Try Live Demo
+            </button>
+          </div>
         </div>
       </section>
 
