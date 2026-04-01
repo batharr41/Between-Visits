@@ -206,12 +206,12 @@ Built with HIPAA in mind:
 - [x] Delete patient with cascading data removal
 - [x] Row Level Security on all database tables
 - [x] Role-based access (family vs caregiver vs admin views)
-- [ ] Multi-agency support (dynamic agency scoping)
-- [ ] Agency self-onboarding
+- [x] Multi-agency support (dynamic agency scoping)
+- [x] Agency self-onboarding
 - [ ] Figma visual redesign
 - [x] Landing page and pricing page
 - [x] Demo mode for prospects
-- [ ] Mobile responsive design
+- [x] Mobile responsive design
 - [ ] HIPAA audit logging
 - [ ] Stripe billing
 
