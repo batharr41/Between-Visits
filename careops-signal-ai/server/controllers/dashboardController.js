@@ -1,4 +1,5 @@
 import pool from '../database/pool.js';
+import { logFromReq } from '../services/auditService.js';
 import { format, subDays } from 'date-fns';
 
 /**
@@ -81,6 +82,7 @@ export async function getTriageQueue(req, res) {
       params
     );
 
+    logFromReq(req, 'view_triage_queue', 'agency', agencyId, { alertCount: result.rows.length });
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching triage queue:', error);
@@ -160,6 +162,7 @@ export async function acknowledgeAlert(req, res) {
       return res.status(404).json({ error: 'Alert not found' });
     }
 
+    logFromReq(req, 'acknowledge_alert', 'alert', alertId);
     res.json({ success: true, alert: result.rows[0] });
   } catch (error) {
     console.error('Error acknowledging alert:', error);
@@ -193,7 +196,7 @@ export async function resolveAlert(req, res) {
       return res.status(404).json({ error: 'Alert not found' });
     }
 
-    console.log('Alert ' + alertId + ' resolved by ' + userEmail);
+    logFromReq(req, 'resolve_alert', 'alert', alertId, { resolutionNotes: resolutionNotes });
     res.json({ success: true, alert: result.rows[0] });
   } catch (error) {
     console.error('Error resolving alert:', error);
