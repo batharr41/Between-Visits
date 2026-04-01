@@ -4,7 +4,7 @@ import {
   Activity, AlertCircle, Bell, Calendar, CheckCircle,
   Clock, Heart, Home, Phone, TrendingUp, Users, ChevronRight,
   AlertTriangle, Sparkles, UserPlus, Search, ArrowUpDown, LogOut, Trash2,
-  FileText, Download, Eye, Menu, X, Shield
+  FileText, Download, Eye, Menu, X, Shield, ClipboardList
 } from 'lucide-react';
 import './App.css';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -205,6 +205,7 @@ function AppShell() {
           <Route path="/new-patient" element={<NewPatientForm />} />
           <Route path="/staff" element={<StaffManagement />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/audit-log" element={<AuditLogPage />} />
         </Routes>
       </main>
     </div>
@@ -237,6 +238,7 @@ function Sidebar({ isOpen, onClose }) {
     { path: '/dashboard/new-patient', icon: UserPlus, label: 'New Patient', roles: ['admin'] },
     { path: '/dashboard/staff', icon: Shield, label: 'Staff', roles: ['admin'] },
     { path: '/dashboard/reports', icon: FileText, label: 'Reports', roles: ['admin'] },
+    { path: '/dashboard/audit-log', icon: ClipboardList, label: 'Audit Log', roles: ['admin'] },
   ];
   var navItems = allNavItems.filter(function(item) { return item.roles.includes(userRole); });
   var handleSignOut = function() { signOut().then(function() { navigate('/'); }); };
@@ -1014,6 +1016,160 @@ function StaffManagement() {
             );
           })}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== AUDIT LOG PAGE ====================
+function AuditLogPage() {
+  var { demoMode, agencyId } = useAuth();
+  var _entries = useState([]); var entries = _entries[0], setEntries = _entries[1];
+  var _loading = useState(true); var loading = _loading[0], setLoading = _loading[1];
+  var _total = useState(0); var total = _total[0], setTotal = _total[1];
+  var _page = useState(0); var page = _page[0], setPage = _page[1];
+  var pageSize = 25;
+
+  function loadLog(offset) {
+    if (demoMode) {
+      setEntries([
+        { id: 'demo-audit-1', action: 'view_patient', resource_type: 'patient', first_name: 'Demo', last_name: 'Admin', user_email: 'demo@betweenvisits.com', created_at: new Date(Date.now() - 300000).toISOString(), ip_address: '192.168.1.1', details: '{"email":"demo@betweenvisits.com"}' },
+        { id: 'demo-audit-2', action: 'view_triage_queue', resource_type: 'agency', first_name: 'Demo', last_name: 'Admin', user_email: 'demo@betweenvisits.com', created_at: new Date(Date.now() - 600000).toISOString(), ip_address: '192.168.1.1', details: '{"email":"demo@betweenvisits.com","alertCount":4}' },
+        { id: 'demo-audit-3', action: 'create_patient', resource_type: 'patient', first_name: 'Demo', last_name: 'Admin', user_email: 'demo@betweenvisits.com', created_at: new Date(Date.now() - 3600000).toISOString(), ip_address: '192.168.1.1', details: '{"email":"demo@betweenvisits.com","name":"Harold Thompson"}' },
+        { id: 'demo-audit-4', action: 'download_patient_report', resource_type: 'patient', first_name: 'Maria', last_name: 'Santos', user_email: 'maria@betweenvisits.com', created_at: new Date(Date.now() - 7200000).toISOString(), ip_address: '10.0.0.5', details: '{"email":"maria@betweenvisits.com"}' },
+        { id: 'demo-audit-5', action: 'acknowledge_alert', resource_type: 'alert', first_name: 'Maria', last_name: 'Santos', user_email: 'maria@betweenvisits.com', created_at: new Date(Date.now() - 10800000).toISOString(), ip_address: '10.0.0.5', details: '{"email":"maria@betweenvisits.com"}' }
+      ]);
+      setTotal(5);
+      setLoading(false);
+      return;
+    }
+    if (!agencyId) { setLoading(false); return; }
+    authFetch(API_URL + '/api/agencies/' + agencyId + '/audit-log?limit=' + pageSize + '&offset=' + offset)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        setEntries(data.entries || []);
+        setTotal(data.total || 0);
+        setLoading(false);
+      })
+      .catch(function(err) { console.error('Failed to load audit log:', err); setLoading(false); });
+  }
+
+  useEffect(function() { loadLog(page * pageSize); }, [agencyId, page, demoMode]);
+
+  function formatAction(action) {
+    var labels = {
+      view_patient: 'Viewed patient',
+      create_patient: 'Created patient',
+      delete_patient: 'Deleted patient',
+      assign_caregiver: 'Assigned caregiver',
+      view_triage_queue: 'Viewed triage queue',
+      acknowledge_alert: 'Acknowledged alert',
+      resolve_alert: 'Resolved alert',
+      download_patient_report: 'Downloaded patient report',
+      download_agency_report: 'Downloaded agency report',
+      add_staff: 'Added staff member',
+      remove_staff: 'Removed staff member',
+      agency_onboarding: 'Agency onboarded'
+    };
+    return labels[action] || action;
+  }
+
+  function actionColor(action) {
+    if (action.includes('delete') || action.includes('remove')) return { bg: '#fef2f2', color: '#dc2626' };
+    if (action.includes('create') || action.includes('add') || action.includes('onboarding')) return { bg: '#f0fdf4', color: '#16a34a' };
+    if (action.includes('view') || action.includes('download')) return { bg: '#eff6ff', color: '#2563eb' };
+    if (action.includes('acknowledge') || action.includes('resolve') || action.includes('assign')) return { bg: '#fefce8', color: '#a16207' };
+    return { bg: '#f5f5f4', color: '#78716c' };
+  }
+
+  function timeAgo(dateStr) {
+    var diffMs = new Date() - new Date(dateStr);
+    var mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return mins + 'm ago';
+    var hours = Math.floor(mins / 60);
+    if (hours < 24) return hours + 'h ago';
+    var days = Math.floor(hours / 24);
+    if (days < 7) return days + 'd ago';
+    return new Date(dateStr).toLocaleDateString();
+  }
+
+  if (loading) return <div className="loading">Loading audit log...</div>;
+
+  var totalPages = Math.ceil(total / pageSize);
+
+  return (
+    <div className="patient-list">
+      {demoMode && <DemoBanner />}
+      <header className="page-header">
+        <div>
+          <h1 className="page-title">Audit Log</h1>
+          <p className="page-subtitle">{total} recorded action{total !== 1 ? 's' : ''} — HIPAA compliance trail</p>
+        </div>
+      </header>
+
+      <div className="card">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {entries.length === 0 ? (
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No audit entries yet. Actions will be logged as users interact with the system.</p>
+          ) : entries.map(function(entry) {
+            var colors = actionColor(entry.action);
+            var details = null;
+            try { details = entry.details ? JSON.parse(entry.details) : null; } catch(e) { details = null; }
+            return (
+              <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 1rem', background: 'var(--bg)', borderRadius: '0.625rem', flexWrap: 'wrap' }}>
+                <span style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, background: colors.bg, color: colors.color, whiteSpace: 'nowrap' }}>
+                  {formatAction(entry.action)}
+                </span>
+                <div style={{ flex: 1, minWidth: '150px' }}>
+                  <span style={{ fontWeight: 500, fontSize: '0.875rem', color: 'var(--text)' }}>
+                    {entry.first_name} {entry.last_name}
+                  </span>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                    {entry.user_email}
+                  </span>
+                </div>
+                {details && details.name && (
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                    {details.name}
+                  </span>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
+                  {entry.ip_address && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-light)', fontFamily: 'var(--font-mono, monospace)' }}>
+                      {entry.ip_address}
+                    </span>
+                  )}
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                    {timeAgo(entry.created_at)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+            <button
+              onClick={function() { setPage(Math.max(0, page - 1)); setLoading(true); }}
+              disabled={page === 0}
+              style={{ padding: '0.5rem 1rem', background: page === 0 ? 'var(--bg)' : 'white', border: '1px solid var(--border)', borderRadius: '0.375rem', cursor: page === 0 ? 'not-allowed' : 'pointer', fontSize: '0.875rem', color: 'var(--text)' }}
+            >
+              Previous
+            </button>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+              Page {page + 1} of {totalPages}
+            </span>
+            <button
+              onClick={function() { setPage(Math.min(totalPages - 1, page + 1)); setLoading(true); }}
+              disabled={page >= totalPages - 1}
+              style={{ padding: '0.5rem 1rem', background: page >= totalPages - 1 ? 'var(--bg)' : 'white', border: '1px solid var(--border)', borderRadius: '0.375rem', cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer', fontSize: '0.875rem', color: 'var(--text)' }}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
