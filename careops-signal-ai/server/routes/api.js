@@ -4,6 +4,7 @@ import dashboardController from '../controllers/dashboardController.js';
 import pool from '../database/pool.js';
 import { authenticateJWT, requireRole } from '../middleware/auth.js';
 import { generatePatientReport, generateAgencyReport } from '../services/reportService.js';
+import { logFromReq } from '../services/auditService.js';
 
 const router = express.Router();
 
@@ -84,7 +85,7 @@ router.post('/onboarding', async (req, res) => {
 
     await client.query('COMMIT');
 
-    console.log('New agency onboarded: ' + agencyName + ' (' + agency.id + ') by ' + userEmail);
+    logFromReq(req, 'agency_onboarding', 'agency', agency.id, { agencyName: agencyName });
     res.status(201).json({
       agency: agency,
       user: staffResult.rows[0]
@@ -138,7 +139,7 @@ router.post('/agencies/:agencyId/staff', requireRole('admin'), enforceAgencyScop
       [agencyId, email, 'supabase-auth-managed', firstName, lastName || '', role]
     );
 
-    console.log('Staff member added: ' + firstName + ' ' + lastName + ' (' + email + ') as ' + role + ' to agency ' + agencyId);
+    logFromReq(req, 'add_staff', 'staff', result.rows[0].id, { email: email, role: role });
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Error adding staff member:', error);
@@ -166,7 +167,7 @@ router.delete('/agencies/:agencyId/staff/:staffId', requireRole('admin'), enforc
     }
 
     var deleted = result.rows[0];
-    console.log('Staff member removed: ' + deleted.first_name + ' ' + deleted.last_name + ' (' + deleted.email + ')');
+    logFromReq(req, 'remove_staff', 'staff', staffId, { email: deleted.email, name: deleted.first_name + ' ' + deleted.last_name });
     res.json({ message: deleted.first_name + ' ' + deleted.last_name + ' has been removed.' });
   } catch (error) {
     console.error('Error removing staff member:', error);
@@ -229,6 +230,7 @@ router.get('/patients/:id', async (req, res) => {
       [id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Patient not found' });
+    logFromReq(req, 'view_patient', 'patient', id);
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error fetching patient:', error);
@@ -245,6 +247,7 @@ router.put('/patients/:id/assign', requireRole('admin'), async (req, res) => {
       [caregiverId || null, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Patient not found' });
+    logFromReq(req, 'assign_caregiver', 'patient', id, { caregiverId: caregiverId });
     res.json({ success: true, patient: result.rows[0] });
   } catch (error) {
     console.error('Error assigning caregiver:', error);
@@ -273,6 +276,7 @@ router.post('/patients', requireRole('admin'), async (req, res) => {
       `INSERT INTO patients (agency_id, first_name, last_name, date_of_birth, medical_conditions, medications, caregiver_name, caregiver_phone, caregiver_email, risk_level) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
       [agency_id, first_name, last_name, date_of_birth, medical_conditions, medications, caregiver_name, caregiver_phone, caregiver_email, 'routine']
     );
+    logFromReq(req, 'create_patient', 'patient', result.rows[0].id, { name: first_name + ' ' + last_name });
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Error creating patient:', error);
@@ -293,6 +297,7 @@ router.delete('/patients/:id', requireRole('admin'), async (req, res) => {
     if (result.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Patient not found' }); }
     await client.query('COMMIT');
     const { first_name, last_name } = result.rows[0];
+    logFromReq(req, 'delete_patient', 'patient', id, { name: first_name + ' ' + last_name });
     res.json({ message: `${first_name} ${last_name} has been deleted.` });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -313,6 +318,7 @@ router.get('/patients/:id/report', requireRole('admin', 'caregiver'), async (req
     const pdfBuffer = await generatePatientReport(id, startDate.toISOString(), endDate.toISOString());
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="patient-report-${id}.pdf"`);
+    logFromReq(req, 'download_patient_report', 'patient', id);
     res.send(pdfBuffer);
   } catch (error) {
     res.status(500).json({ error: 'Failed to generate report: ' + error.message });
@@ -330,6 +336,7 @@ router.get('/agencies/:agencyId/report', requireRole('admin'), enforceAgencyScop
     const pdfBuffer = await generateAgencyReport(agencyId, startDate.toISOString(), endDate.toISOString());
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="agency-weekly-report.pdf"`);
+    logFromReq(req, 'download_agency_report', 'agency', agencyId);
     res.send(pdfBuffer);
   } catch (error) {
     res.status(500).json({ error: 'Failed to generate report: ' + error.message });
@@ -355,6 +362,35 @@ router.get('/agencies/:agencyId/reports/weekly', requireRole('admin'), enforceAg
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to generate report' });
+  }
+});
+
+// GET audit log for agency - admin only
+router.get('/agencies/:agencyId/audit-log', requireRole('admin'), enforceAgencyScope, async (req, res) => {
+  try {
+    var agencyId = req.params.agencyId;
+    var limit = parseInt(req.query.limit) || 50;
+    var offset = parseInt(req.query.offset) || 0;
+
+    var result = await pool.query(
+      'SELECT al.*, su.email as user_email, su.first_name, su.last_name FROM audit_log al LEFT JOIN staff_users su ON al.user_id = su.id WHERE su.agency_id = $1 ORDER BY al.created_at DESC LIMIT $2 OFFSET $3',
+      [agencyId, limit, offset]
+    );
+
+    var countResult = await pool.query(
+      'SELECT COUNT(*) as total FROM audit_log al LEFT JOIN staff_users su ON al.user_id = su.id WHERE su.agency_id = $1',
+      [agencyId]
+    );
+
+    res.json({
+      entries: result.rows,
+      total: parseInt(countResult.rows[0].total),
+      limit: limit,
+      offset: offset
+    });
+  } catch (error) {
+    console.error('Error fetching audit log:', error);
+    res.status(500).json({ error: 'Failed to fetch audit log' });
   }
 });
 
