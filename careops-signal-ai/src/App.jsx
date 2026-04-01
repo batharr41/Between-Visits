@@ -61,10 +61,82 @@ function DemoBanner() {
 }
 
 function ProtectedRoute({ children }) {
-  var { user, demoMode, needsOnboarding } = useAuth();
+  var { user, demoMode, needsOnboarding, trialExpired } = useAuth();
   if (!user && !demoMode) return <Navigate to="/login" replace />;
   if (needsOnboarding && !demoMode) return <Navigate to="/onboarding" replace />;
+  if (trialExpired && !demoMode) return <Navigate to="/trial-expired" replace />;
   return children;
+}
+
+// ==================== TRIAL EXPIRED SCREEN ====================
+function TrialExpiredScreen() {
+  var { user, signOut, trialEndsAt } = useAuth();
+  var navigate = useNavigate();
+
+  function handleSignOut() {
+    signOut().then(function() { navigate('/'); });
+  }
+
+  var expiredDate = trialEndsAt ? new Date(trialEndsAt).toLocaleDateString() : '';
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+      <div style={{ background: 'white', borderRadius: '1.5rem', padding: '3rem', maxWidth: '520px', width: '100%', boxShadow: 'var(--shadow-xl)', textAlign: 'center' }}>
+        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+          <Clock size={32} style={{ color: '#a16207' }} />
+        </div>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem', color: 'var(--text)', marginBottom: '0.75rem' }}>Your trial has ended</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: 1.6, marginBottom: '0.5rem' }}>
+          Your 7-day free trial expired on {expiredDate}. Upgrade to a paid plan to continue using BetweenVisits and keep your patient data safe.
+        </p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '2rem' }}>
+          Signed in as {user ? user.email : ''}
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '1.25rem', textAlign: 'left' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontWeight: 600, color: 'var(--text)' }}>Starter</span>
+              <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '1.125rem' }}>$49/mo</span>
+            </div>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>Up to 25 patients, 2 staff accounts</p>
+          </div>
+          <div style={{ background: 'linear-gradient(135deg, #eff6ff, #dbeafe)', borderRadius: '0.75rem', padding: '1.25rem', textAlign: 'left', border: '2px solid var(--primary)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontWeight: 600, color: 'var(--text)' }}>Professional</span>
+              <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '1.125rem' }}>$99/mo</span>
+            </div>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>Up to 100 patients, 10 staff, SMS alerts</p>
+          </div>
+          <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '1.25rem', textAlign: 'left' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontWeight: 600, color: 'var(--text)' }}>Enterprise</span>
+              <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '1.125rem' }}>$199/mo</span>
+            </div>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>Unlimited patients, unlimited staff, dedicated support</p>
+          </div>
+        </div>
+
+        <button
+          style={{
+            width: '100%', padding: '0.875rem', marginTop: '1.5rem',
+            background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
+            color: 'white', border: 'none', borderRadius: '0.75rem',
+            fontSize: '1rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+          }}
+        >
+          Upgrade Now
+        </button>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '1rem' }}>
+          Billing powered by Stripe (coming soon).
+          <br />
+          <button onClick={handleSignOut} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500, fontSize: '0.8125rem', padding: 0, fontFamily: 'inherit' }}>
+            Sign out
+          </button>
+        </p>
+      </div>
+    </div>
+  );
 }
 
 // ==================== ONBOARDING SCREEN ====================
@@ -219,6 +291,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LandingPage />} />
+          <Route path="/trial-expired" element={<TrialExpiredScreen />} />
           <Route path="/onboarding" element={<OnboardingScreen />} />
           <Route path="/dashboard/*" element={<ProtectedRoute><AppShell /></ProtectedRoute>} />
         </Routes>
