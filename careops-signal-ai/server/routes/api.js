@@ -27,11 +27,22 @@ router.get('/me', async (req, res) => {
     const userEmail = req.user?.email;
     if (!userEmail) return res.status(401).json({ error: 'No user email in token' });
     const staffResult = await pool.query(
-      'SELECT id, agency_id, email, first_name, last_name, role FROM staff_users WHERE email = $1',
+      'SELECT su.id, su.agency_id, su.email, su.first_name, su.last_name, su.role, a.trial_ends_at FROM staff_users su LEFT JOIN agencies a ON su.agency_id = a.id WHERE su.email = $1',
       [userEmail]
     );
     if (staffResult.rows.length > 0) {
-      return res.json(staffResult.rows[0]);
+      var user = staffResult.rows[0];
+      var trialExpired = user.trial_ends_at && new Date(user.trial_ends_at) < new Date();
+      return res.json({
+        id: user.id,
+        agency_id: user.agency_id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        role: user.role,
+        trial_ends_at: user.trial_ends_at,
+        trial_expired: trialExpired
+      });
     }
     const familyResult = await pool.query(
       'SELECT id, agency_id, patient_id, email, first_name, last_name, relationship FROM family_users WHERE email = $1',
@@ -72,7 +83,7 @@ router.post('/onboarding', async (req, res) => {
 
     // Create the agency
     var agencyResult = await client.query(
-      'INSERT INTO agencies (name, contact_email) VALUES ($1, $2) RETURNING *',
+      'INSERT INTO agencies (name, contact_email, trial_ends_at) VALUES ($1, $2, NOW() + INTERVAL \'7 days\') RETURNING *',
       [agencyName, userEmail]
     );
     var agency = agencyResult.rows[0];
