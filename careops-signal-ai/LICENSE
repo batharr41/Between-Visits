@@ -1,12 +1,29 @@
-Copyright (c) 2026 Bilal Athar. All Rights Reserved.
+Copyright (c) 2025 Bilal Athar. All rights reserved.
 
-This software and its source code are proprietary and confidential.
-Viewing this code is permitted for evaluation purposes only.
-Copying, modifying, distributing, or using this code for any purpose
-without explicit written permission from the author is strictly prohibited.
+PROPRIETARY LICENSE — VIEW ONLY
 
-DISCLAIMER:
-This software is provided for educational and demonstration purposes.
-For production healthcare use, ensure HIPAA compliance, proper security
-audits, and appropriate Business Associate Agreements (BAAs) with all
-service providers.
+This source code is made publicly available on GitHub for portfolio
+and demonstration purposes only. The following restrictions apply:
+
+1. NO PERMISSION IS GRANTED to copy, modify, merge, publish,
+   distribute, sublicense, or sell copies of this software or any
+   portion thereof.
+
+2. NO PERMISSION IS GRANTED to use this software, in whole or in
+   part, for commercial or non-commercial purposes without prior
+   written consent from the copyright holder.
+
+3. Viewing and reading this source code for personal reference or
+   evaluation (e.g., by potential employers, collaborators, or
+   investors) is permitted.
+
+4. Forking this repository on GitHub is permitted solely for the
+   purpose of submitting pull requests back to the original
+   repository. Forked copies may not be used independently.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE
+LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM
+THE USE OR INABILITY TO USE THIS SOFTWARE.
+
+For licensing inquiries, contact: batharbetweenvisits@gmail.com
