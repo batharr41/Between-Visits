@@ -83,8 +83,8 @@ router.post('/onboarding', async (req, res) => {
 
     // Create the agency
     var agencyResult = await client.query(
-      'INSERT INTO agencies (name, contact_email, trial_ends_at) VALUES ($1, $2, NOW() + INTERVAL \'14 days\') RETURNING *',
-      [agencyName, userEmail]
+      'INSERT INTO agencies (name, contact_email, trial_ends_at, sms_consent) VALUES ($1, $2, NOW() + INTERVAL \'14 days\', $3) RETURNING *',
+          [agencyName, userEmail, req.body.smsConsent || false]
     );
     var agency = agencyResult.rows[0];
 
