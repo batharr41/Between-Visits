@@ -89,7 +89,7 @@ function TrialExpiredScreen() {
         </div>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem', color: 'var(--text)', marginBottom: '0.75rem' }}>Your trial has ended</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: 1.6, marginBottom: '0.5rem' }}>
-          Your 7-day free trial expired on {expiredDate}. Upgrade to a paid plan to continue using BetweenVisits and keep your patient data safe.
+          Your 14-day free trial expired on {expiredDate}. Upgrade to a paid plan to continue using BetweenVisits and keep your patient data safe.
         </p>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '2rem' }}>
           Signed in as {user ? user.email : ''}
@@ -155,6 +155,8 @@ function OnboardingScreen() {
   var submitting = _submitting[0], setSubmitting = _submitting[1];
   var _error = useState(null);
   var error = _error[0], setError = _error[1];
+  var _smsConsent = useState(false);
+  var smsConsent = _smsConsent[0], setSmsConsent = _smsConsent[1];
 
   var handleSubmit = function(e) {
     e.preventDefault();
@@ -173,7 +175,8 @@ function OnboardingScreen() {
         body: JSON.stringify({
           agencyName: agencyName.trim(),
           firstName: firstName.trim(),
-          lastName: lastName.trim()
+          lastName: lastName.trim(),
+          smsConsent: smsConsent
         })
       });
     }).then(function(res) {
@@ -238,6 +241,17 @@ function OnboardingScreen() {
                 style={{ width: '100%', padding: '0.75rem 1rem', border: '2px solid var(--border)', borderRadius: '0.75rem', fontSize: '0.9375rem', fontFamily: 'inherit', color: 'var(--text)' }}
               />
             </div>
+          </div>
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text)' }}>
+              <input
+                type="checkbox"
+                checked={smsConsent}
+                onChange={function(e) { setSmsConsent(e.target.checked); }}
+                style={{ marginTop: '0.25rem', width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <span>I consent to receive SMS alerts from BetweenVisits regarding patient status changes and critical health updates. Standard message and data rates may apply. You can opt out at any time.</span>
+            </label>
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
             Signed in as {user ? user.email : ''}
@@ -930,11 +944,7 @@ function StaffManagement() {
   var formData = _formData[0], setFormData = _formData[1];
 
   function loadStaff() {
-    if (demoMode) {
-      setStaff(DEMO_STAFF);
-      setLoading(false);
-      return;
-    }
+    if (demoMode) { setStaff(DEMO_STAFF); setLoading(false); return; }
     if (!agencyId) { setLoading(false); return; }
     authFetch(API_URL + '/api/agencies/' + agencyId + '/staff')
       .then(function(res) { return res.json(); })
@@ -947,46 +957,24 @@ function StaffManagement() {
   var handleAddStaff = function(e) {
     e.preventDefault();
     if (demoMode) { alert('This is a demo - sign up for a free account to manage staff!'); return; }
-    setSubmitting(true);
-    setError(null);
-    setSuccess(null);
-
+    setSubmitting(true); setError(null); setSuccess(null);
     authFetch(API_URL + '/api/agencies/' + agencyId + '/staff', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: formData.email.trim(),
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        role: formData.role
-      })
-    })
-      .then(function(res) {
-        if (!res.ok) return res.json().then(function(data) { throw new Error(data.error || 'Failed to add staff'); });
-        return res.json();
-      })
-      .then(function(data) {
-        setSuccess(data.first_name + ' ' + data.last_name + ' has been added as ' + data.role + '. They can now sign up with ' + data.email + ' and will automatically join your agency.');
-        setFormData({ email: '', firstName: '', lastName: '', role: 'caregiver' });
-        setSubmitting(false);
-        setShowForm(false);
-        loadStaff();
-      })
-      .catch(function(err) {
-        setError(err.message);
-        setSubmitting(false);
-      });
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: formData.email.trim(), firstName: formData.firstName.trim(), lastName: formData.lastName.trim(), role: formData.role })
+    }).then(function(res) {
+      if (!res.ok) return res.json().then(function(data) { throw new Error(data.error || 'Failed to add staff'); });
+      return res.json();
+    }).then(function(data) {
+      setSuccess(data.first_name + ' ' + data.last_name + ' has been added as ' + data.role + '. They can now sign up with ' + data.email + ' and will automatically join your agency.');
+      setFormData({ email: '', firstName: '', lastName: '', role: 'caregiver' }); setSubmitting(false); setShowForm(false); loadStaff();
+    }).catch(function(err) { setError(err.message); setSubmitting(false); });
   };
 
   var handleRemoveStaff = function(staffId, name) {
     if (demoMode) { alert('This is a demo - sign up for a free account to manage staff!'); return; }
     if (!window.confirm('Remove ' + name + ' from your agency? They will lose access to all patient data.')) return;
-
     authFetch(API_URL + '/api/agencies/' + agencyId + '/staff/' + staffId, { method: 'DELETE' })
-      .then(function(res) {
-        if (!res.ok) return res.json().then(function(data) { throw new Error(data.error || 'Failed to remove'); });
-        loadStaff();
-      })
+      .then(function(res) { if (!res.ok) return res.json().then(function(data) { throw new Error(data.error || 'Failed to remove'); }); loadStaff(); })
       .catch(function(err) { alert(err.message); });
   };
 
@@ -996,70 +984,28 @@ function StaffManagement() {
     <div className="patient-list">
       {demoMode && <DemoBanner />}
       <header className="page-header">
-        <div>
-          <h1 className="page-title">Staff Management</h1>
-          <p className="page-subtitle">{staff.length} team member{staff.length !== 1 ? 's' : ''}</p>
-        </div>
-        {!demoMode && (
-          <button onClick={function() { setShowForm(!showForm); setError(null); setSuccess(null); }} className="btn-primary">
-            <UserPlus size={18} />
-            {showForm ? 'Cancel' : 'Add Staff Member'}
-          </button>
-        )}
+        <div><h1 className="page-title">Staff Management</h1><p className="page-subtitle">{staff.length} team member{staff.length !== 1 ? 's' : ''}</p></div>
+        {!demoMode && (<button onClick={function() { setShowForm(!showForm); setError(null); setSuccess(null); }} className="btn-primary"><UserPlus size={18} />{showForm ? 'Cancel' : 'Add Staff Member'}</button>)}
       </header>
-
-      {success && (
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '1rem 1.5rem', marginBottom: '1.5rem', color: 'var(--green)', fontSize: '0.9375rem' }}>
-          <CheckCircle size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-          {success}
-        </div>
-      )}
-
+      {success && (<div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '1rem 1.5rem', marginBottom: '1.5rem', color: 'var(--green)', fontSize: '0.9375rem' }}><CheckCircle size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />{success}</div>)}
       {showForm && (
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <h3 className="card-title">Add Staff Member</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-            Add a team member to your agency. They will need to create a BetweenVisits account using the same email address to log in.
-          </p>
-
-          {error && (
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1rem', color: 'var(--red)', fontSize: '0.875rem' }}>
-              {error}
-            </div>
-          )}
-
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>Add a team member to your agency. They will need to create a BetweenVisits account using the same email address to log in.</p>
+          {error && (<div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1rem', color: 'var(--red)', fontSize: '0.875rem' }}>{error}</div>)}
           <form onSubmit={handleAddStaff}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div className="form-group">
-                <label>First Name *</label>
-                <input type="text" value={formData.firstName} onChange={function(e) { setFormData(Object.assign({}, formData, { firstName: e.target.value })); }} placeholder="e.g., Maria" required />
-              </div>
-              <div className="form-group">
-                <label>Last Name</label>
-                <input type="text" value={formData.lastName} onChange={function(e) { setFormData(Object.assign({}, formData, { lastName: e.target.value })); }} placeholder="e.g., Santos" />
-              </div>
+              <div className="form-group"><label>First Name *</label><input type="text" value={formData.firstName} onChange={function(e) { setFormData(Object.assign({}, formData, { firstName: e.target.value })); }} placeholder="e.g., Maria" required /></div>
+              <div className="form-group"><label>Last Name</label><input type="text" value={formData.lastName} onChange={function(e) { setFormData(Object.assign({}, formData, { lastName: e.target.value })); }} placeholder="e.g., Santos" /></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div className="form-group">
-                <label>Email Address *</label>
-                <input type="email" value={formData.email} onChange={function(e) { setFormData(Object.assign({}, formData, { email: e.target.value })); }} placeholder="e.g., maria@agency.com" required />
-              </div>
-              <div className="form-group">
-                <label>Role *</label>
-                <select value={formData.role} onChange={function(e) { setFormData(Object.assign({}, formData, { role: e.target.value })); }}>
-                  <option value="caregiver">Caregiver</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
+              <div className="form-group"><label>Email Address *</label><input type="email" value={formData.email} onChange={function(e) { setFormData(Object.assign({}, formData, { email: e.target.value })); }} placeholder="e.g., maria@agency.com" required /></div>
+              <div className="form-group"><label>Role *</label><select value={formData.role} onChange={function(e) { setFormData(Object.assign({}, formData, { role: e.target.value })); }}><option value="caregiver">Caregiver</option><option value="admin">Admin</option></select></div>
             </div>
-            <button type="submit" className="btn-primary" disabled={submitting} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-              <UserPlus size={18} />
-              {submitting ? 'Adding...' : 'Add to Agency'}
-            </button>
+            <button type="submit" className="btn-primary" disabled={submitting} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><UserPlus size={18} />{submitting ? 'Adding...' : 'Add to Agency'}</button>
           </form>
         </div>
       )}
-
       <div className="card">
         <h3 className="card-title">Team Members</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1070,25 +1016,11 @@ function StaffManagement() {
                   {(member.first_name || '?')[0]}{(member.last_name || '')[0] || ''}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text)' }}>
-                    {member.first_name} {member.last_name}
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {member.email}
-                  </div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text)' }}>{member.first_name} {member.last_name}</div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{member.email}</div>
                 </div>
-                <span style={{ padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', background: member.role === 'admin' ? '#ede9fe' : '#dbeafe', color: member.role === 'admin' ? '#7c3aed' : '#2563eb' }}>
-                  {member.role}
-                </span>
-                {!demoMode && (
-                  <button
-                    onClick={function() { handleRemoveStaff(member.id, member.first_name + ' ' + member.last_name); }}
-                    title="Remove staff member"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', padding: '0.25rem' }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
+                <span style={{ padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', background: member.role === 'admin' ? '#ede9fe' : '#dbeafe', color: member.role === 'admin' ? '#7c3aed' : '#2563eb' }}>{member.role}</span>
+                {!demoMode && (<button onClick={function() { handleRemoveStaff(member.id, member.first_name + ' ' + member.last_name); }} title="Remove staff member" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', padding: '0.25rem' }}><Trash2 size={16} /></button>)}
               </div>
             );
           })}
@@ -1116,38 +1048,19 @@ function AuditLogPage() {
         { id: 'demo-audit-4', action: 'download_patient_report', resource_type: 'patient', first_name: 'Maria', last_name: 'Santos', user_email: 'maria@betweenvisits.com', created_at: new Date(Date.now() - 7200000).toISOString(), ip_address: '10.0.0.5', details: '{"email":"maria@betweenvisits.com"}' },
         { id: 'demo-audit-5', action: 'acknowledge_alert', resource_type: 'alert', first_name: 'Maria', last_name: 'Santos', user_email: 'maria@betweenvisits.com', created_at: new Date(Date.now() - 10800000).toISOString(), ip_address: '10.0.0.5', details: '{"email":"maria@betweenvisits.com"}' }
       ]);
-      setTotal(5);
-      setLoading(false);
-      return;
+      setTotal(5); setLoading(false); return;
     }
     if (!agencyId) { setLoading(false); return; }
     authFetch(API_URL + '/api/agencies/' + agencyId + '/audit-log?limit=' + pageSize + '&offset=' + offset)
       .then(function(res) { return res.json(); })
-      .then(function(data) {
-        setEntries(data.entries || []);
-        setTotal(data.total || 0);
-        setLoading(false);
-      })
+      .then(function(data) { setEntries(data.entries || []); setTotal(data.total || 0); setLoading(false); })
       .catch(function(err) { console.error('Failed to load audit log:', err); setLoading(false); });
   }
 
   useEffect(function() { loadLog(page * pageSize); }, [agencyId, page, demoMode]);
 
   function formatAction(action) {
-    var labels = {
-      view_patient: 'Viewed patient',
-      create_patient: 'Created patient',
-      delete_patient: 'Deleted patient',
-      assign_caregiver: 'Assigned caregiver',
-      view_triage_queue: 'Viewed triage queue',
-      acknowledge_alert: 'Acknowledged alert',
-      resolve_alert: 'Resolved alert',
-      download_patient_report: 'Downloaded patient report',
-      download_agency_report: 'Downloaded agency report',
-      add_staff: 'Added staff member',
-      remove_staff: 'Removed staff member',
-      agency_onboarding: 'Agency onboarded'
-    };
+    var labels = { view_patient: 'Viewed patient', create_patient: 'Created patient', delete_patient: 'Deleted patient', assign_caregiver: 'Assigned caregiver', view_triage_queue: 'Viewed triage queue', acknowledge_alert: 'Acknowledged alert', resolve_alert: 'Resolved alert', download_patient_report: 'Downloaded patient report', download_agency_report: 'Downloaded agency report', add_staff: 'Added staff member', remove_staff: 'Removed staff member', agency_onboarding: 'Agency onboarded' };
     return labels[action] || action;
   }
 
@@ -1160,31 +1073,20 @@ function AuditLogPage() {
   }
 
   function timeAgo(dateStr) {
-    var diffMs = new Date() - new Date(dateStr);
-    var mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return mins + 'm ago';
-    var hours = Math.floor(mins / 60);
-    if (hours < 24) return hours + 'h ago';
-    var days = Math.floor(hours / 24);
-    if (days < 7) return days + 'd ago';
+    var diffMs = new Date() - new Date(dateStr); var mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'Just now'; if (mins < 60) return mins + 'm ago';
+    var hours = Math.floor(mins / 60); if (hours < 24) return hours + 'h ago';
+    var days = Math.floor(hours / 24); if (days < 7) return days + 'd ago';
     return new Date(dateStr).toLocaleDateString();
   }
 
   if (loading) return <div className="loading">Loading audit log...</div>;
-
   var totalPages = Math.ceil(total / pageSize);
 
   return (
     <div className="patient-list">
       {demoMode && <DemoBanner />}
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">Audit Log</h1>
-          <p className="page-subtitle">{total} recorded action{total !== 1 ? 's' : ''} — HIPAA compliance trail</p>
-        </div>
-      </header>
-
+      <header className="page-header"><div><h1 className="page-title">Audit Log</h1><p className="page-subtitle">{total} recorded action{total !== 1 ? 's' : ''} — HIPAA compliance trail</p></div></header>
       <div className="card">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {entries.length === 0 ? (
@@ -1195,56 +1097,25 @@ function AuditLogPage() {
             try { details = entry.details ? JSON.parse(entry.details) : null; } catch(e) { details = null; }
             return (
               <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 1rem', background: 'var(--bg)', borderRadius: '0.625rem', flexWrap: 'wrap' }}>
-                <span style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, background: colors.bg, color: colors.color, whiteSpace: 'nowrap' }}>
-                  {formatAction(entry.action)}
-                </span>
+                <span style={{ padding: '0.25rem 0.625rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, background: colors.bg, color: colors.color, whiteSpace: 'nowrap' }}>{formatAction(entry.action)}</span>
                 <div style={{ flex: 1, minWidth: '150px' }}>
-                  <span style={{ fontWeight: 500, fontSize: '0.875rem', color: 'var(--text)' }}>
-                    {entry.first_name} {entry.last_name}
-                  </span>
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-                    {entry.user_email}
-                  </span>
+                  <span style={{ fontWeight: 500, fontSize: '0.875rem', color: 'var(--text)' }}>{entry.first_name} {entry.last_name}</span>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>{entry.user_email}</span>
                 </div>
-                {details && details.name && (
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                    {details.name}
-                  </span>
-                )}
+                {details && details.name && (<span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{details.name}</span>)}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
-                  {entry.ip_address && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-light)', fontFamily: 'var(--font-mono, monospace)' }}>
-                      {entry.ip_address}
-                    </span>
-                  )}
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                    {timeAgo(entry.created_at)}
-                  </span>
+                  {entry.ip_address && (<span style={{ fontSize: '0.75rem', color: 'var(--text-light)', fontFamily: 'var(--font-mono, monospace)' }}>{entry.ip_address}</span>)}
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{timeAgo(entry.created_at)}</span>
                 </div>
               </div>
             );
           })}
         </div>
-
         {totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-            <button
-              onClick={function() { setPage(Math.max(0, page - 1)); setLoading(true); }}
-              disabled={page === 0}
-              style={{ padding: '0.5rem 1rem', background: page === 0 ? 'var(--bg)' : 'white', border: '1px solid var(--border)', borderRadius: '0.375rem', cursor: page === 0 ? 'not-allowed' : 'pointer', fontSize: '0.875rem', color: 'var(--text)' }}
-            >
-              Previous
-            </button>
-            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-              Page {page + 1} of {totalPages}
-            </span>
-            <button
-              onClick={function() { setPage(Math.min(totalPages - 1, page + 1)); setLoading(true); }}
-              disabled={page >= totalPages - 1}
-              style={{ padding: '0.5rem 1rem', background: page >= totalPages - 1 ? 'var(--bg)' : 'white', border: '1px solid var(--border)', borderRadius: '0.375rem', cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer', fontSize: '0.875rem', color: 'var(--text)' }}
-            >
-              Next
-            </button>
+            <button onClick={function() { setPage(Math.max(0, page - 1)); setLoading(true); }} disabled={page === 0} style={{ padding: '0.5rem 1rem', background: page === 0 ? 'var(--bg)' : 'white', border: '1px solid var(--border)', borderRadius: '0.375rem', cursor: page === 0 ? 'not-allowed' : 'pointer', fontSize: '0.875rem', color: 'var(--text)' }}>Previous</button>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Page {page + 1} of {totalPages}</span>
+            <button onClick={function() { setPage(Math.min(totalPages - 1, page + 1)); setLoading(true); }} disabled={page >= totalPages - 1} style={{ padding: '0.5rem 1rem', background: page >= totalPages - 1 ? 'var(--bg)' : 'white', border: '1px solid var(--border)', borderRadius: '0.375rem', cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer', fontSize: '0.875rem', color: 'var(--text)' }}>Next</button>
           </div>
         )}
       </div>
