@@ -155,6 +155,8 @@ function LoginPanel({ isOpen, onClose }) {
               )}
             </div>
 
+
+
             <button
               type="submit"
               className="login-panel-btn"
@@ -254,7 +256,11 @@ export default function LandingPage() {
           </p>
           <div className="hero-actions">
             <button onClick={function() { setLoginOpen(true); }} className="hero-btn-primary">
-              Try It Free — 14 Days <ArrowRight size={20} />
+              Start Free Trial <ArrowRight size={20} />
+            </button>
+            <button onClick={handleTryDemo} className="hero-btn-secondary" style={{ cursor: 'pointer', background: 'none', border: '2px solid rgba(255,255,255,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Eye size={18} />
+              Try Live Demo
             </button>
           </div>
           <div className="hero-stats">
@@ -410,15 +416,16 @@ export default function LandingPage() {
 
       <section className="landing-cta">
         <div className="section-inner">
-          <h2>Empower Your Care Team Today</h2>
-          <p>Built for Arizona home care agencies</p>
+          <h2>Ready to Protect Your Patients?</h2>
+          <p>Join home care agencies and assisted living facilities using AI to catch health risks early.</p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={handleTryDemo} className="hero-btn-primary">
+            <button onClick={function() { setLoginOpen(true); }} className="hero-btn-primary">
+              Start Your Free Trial <ArrowRight size={20} />
+            </button>
+            <button onClick={handleTryDemo} className="hero-btn-secondary" style={{ cursor: 'pointer', background: 'none', border: '2px solid rgba(255,255,255,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Eye size={18} />
               Try Live Demo
             </button>
-            <a href="mailto:batharbetweenvisits@gmail.com" className="hero-btn-secondary" style={{ cursor: 'pointer', background: 'none', border: '2px solid rgba(255,255,255,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', color: 'white' }}>
-              Schedule a Walkthrough
-            </a>
           </div>
         </div>
       </section>
@@ -446,7 +453,7 @@ export default function LandingPage() {
             <BetweenVisitsLogo size={28} />
             <span>BetweenVisits</span>
           </div>
-          <p className="footer-text">&copy; 2026 BetweenVisits AI. All rights reserved.</p>
+          <p className="footer-text">AI-powered early warning system for home care agencies and assisted living facilities.</p>
         </div>
       </footer>
     </div>
