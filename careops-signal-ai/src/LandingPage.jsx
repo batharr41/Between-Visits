@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import {
   Activity, AlertCircle, CheckCircle, Shield, FileText,
   Bell, Users, ChevronRight, ArrowRight, Heart, Clock,
-  Smartphone, BarChart3, Zap, X, Eye
+  Smartphone, BarChart3, Zap, X, Eye, TrendingUp
 } from 'lucide-react';
 import './Landing.css';
 
@@ -96,7 +96,6 @@ function LoginPanel({ isOpen, onClose }) {
         <button className="login-panel-close" onClick={onClose}>
           <X size={24} />
         </button>
-
         <div className="login-panel-content">
           <div className="login-logo">
             <BetweenVisitsLogo size={48} />
@@ -105,73 +104,37 @@ function LoginPanel({ isOpen, onClose }) {
               {mode === 'login' ? 'Sign in to your account' : 'Create your account'}
             </p>
           </div>
-
           {error && <div className="login-error">{error}</div>}
           {message && <div className="login-success">{message}</div>}
-
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
               <label>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={function(e) { setEmail(e.target.value); }}
-                placeholder="you@agency.com"
-                required
-              />
+              <input type="email" value={email} onChange={function(e) { setEmail(e.target.value); }} placeholder="you@agency.com" required />
             </div>
             <div className="form-group">
               <label>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={function(e) { setPassword(e.target.value); }}
-                placeholder="--------"
-                required
-                minLength={mode === "signup" ? 10 : 1}
-              />
+              <input type="password" value={password} onChange={function(e) { setPassword(e.target.value); }} placeholder="--------" required minLength={mode === "signup" ? 10 : 1} />
               {mode === 'signup' && password.length > 0 && (
                 <div className="password-strength">
                   <div className="strength-bars">
                     {[1, 2, 3, 4, 5].map(function(i) {
-                      return (
-                        <div
-                          key={i}
-                          className="strength-bar"
-                          style={{
-                            background: i <= strength.level ? strength.color : '#e2e8f0'
-                          }}
-                        />
-                      );
+                      return (<div key={i} className="strength-bar" style={{ background: i <= strength.level ? strength.color : '#e2e8f0' }} />);
                     })}
                   </div>
-                  <span className="strength-label" style={{ color: strength.color }}>
-                    {strength.label}
-                  </span>
+                  <span className="strength-label" style={{ color: strength.color }}>{strength.label}</span>
                 </div>
               )}
               {mode === 'signup' && (
                 <p className="password-hint">Minimum 10 characters with uppercase, lowercase, number, and symbol</p>
               )}
             </div>
-
-
-
-            <button
-              type="submit"
-              className="login-panel-btn"
-              disabled={loading}
-            >
+            <button type="submit" className="login-panel-btn" disabled={loading}>
               {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
             </button>
           </form>
-
           <p className="login-toggle">
             {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-            <button
-              onClick={function() { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); setMessage(null); }}
-              className="login-toggle-btn"
-            >
+            <button onClick={function() { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); setMessage(null); }} className="login-toggle-btn">
               {mode === 'login' ? 'Sign Up' : 'Sign In'}
             </button>
           </p>
@@ -208,205 +171,193 @@ export default function LandingPage() {
     <div className="landing">
       <LoginPanel isOpen={loginOpen} onClose={function() { setLoginOpen(false); }} />
 
+      {/* ===== NAV ===== */}
       <nav className="landing-nav">
         <div className="landing-nav-inner">
           <div className="landing-logo">
-            <BetweenVisitsLogo size={36} />
             <span>BetweenVisits</span>
           </div>
           <div className="landing-nav-links">
             <a href="#features">Features</a>
-            <a href="#how-it-works">How It Works</a>
+            <a href="#how-it-works">Process</a>
             <a href="#pricing">Pricing</a>
-            <a href="#contact">Contact</a>
-            <button
-              onClick={handleTryDemo}
-              style={{
-                background: 'none',
-                border: '1px solid rgba(255,255,255,0.3)',
-                color: 'white',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.5rem',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.375rem'
-              }}
-            >
-              <Eye size={16} />
-              Try Demo
-            </button>
-            <button onClick={function() { setLoginOpen(true); }} className="landing-nav-cta">
-              Get Started
-            </button>
+            <a href="#contact">Resources</a>
+            <button onClick={function() { setLoginOpen(true); }} className="nav-signup-btn">Sign Up</button>
+            <button onClick={handleTryDemo} className="nav-demo-btn">Demo</button>
           </div>
         </div>
       </nav>
 
+      {/* ===== HERO ===== */}
       <section className="landing-hero">
-        <div className="hero-content">
-          <div className="hero-badge">AI-Powered Patient Safety</div>
-          <h1>Catch Health Risks <span className="hero-highlight">Before</span> They Become Emergencies</h1>
-          <p className="hero-subtitle">
-            BetweenVisits monitors patient check-ins with AI-powered risk scoring,
-            automatically alerting caregivers when something needs attention. Built for
-            home care agencies and assisted living facilities.
-          </p>
-          <div className="hero-actions">
-            <button onClick={function() { setLoginOpen(true); }} className="hero-btn-primary">
-              Start Free Trial <ArrowRight size={20} />
-            </button>
-            <button onClick={handleTryDemo} className="hero-btn-secondary" style={{ cursor: 'pointer', background: 'none', border: '2px solid rgba(255,255,255,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Eye size={18} />
-              Try Live Demo
+        <div className="hero-grid">
+          <div>
+            <div className="hero-badge">
+              <Shield size={14} />
+              Patient Guardian AI
+            </div>
+            <h1>Catch Health Risks <br /><em className="hero-highlight">Before</em> They Become Emergencies</h1>
+            <p className="hero-subtitle">
+              Advanced AI oversight for high-risk patients. Our sanctuary protection engine continuously monitors signals to provide healthcare providers with clinical foresight.
+            </p>
+            <button onClick={function() { setLoginOpen(true); }} className="hero-cta-btn">
+              Try It Free — 14 Days
             </button>
           </div>
-          <div className="hero-stats">
-            <div className="hero-stat">
-              <span className="hero-stat-value">90/100</span>
-              <span className="hero-stat-label">Risk scores in real-time</span>
-            </div>
-            <div className="hero-stat-divider" />
-            <div className="hero-stat">
-              <span className="hero-stat-value">&lt; 30s</span>
-              <span className="hero-stat-label">Alert delivery time</span>
-            </div>
-            <div className="hero-stat-divider" />
-            <div className="hero-stat">
-              <span className="hero-stat-value">24/7</span>
-              <span className="hero-stat-label">Continuous monitoring</span>
+          <div className="hero-image-wrapper">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBk7OEeAIPQsTY8eIqfmrxycCamgy9CBau-6Lj9-KJKYL2IyciXYU5cvFAF1oompE4-0JZsFLIX7E5ZeDjyWKTAOlMN7ZjlhXOByU3PJ2bThjhf8eIhRv1i5jfVC8GQoM5lKs2N6Cn1Ya8FfDvcuZsvlPnsNRQp1v4fl3ILRwTZ00yIr0b3XCPickuKbPWLqKsPzmzVCV3vHseW1KTl9RN3kZaKHYEqygdU-TbxqeoxSGuWc44LqWRg4GPgv5oUqCruWUO3C-UuX6ze" alt="Clinical monitoring interface" />
+            <div className="hero-image-overlay" />
+            <div className="hero-glass-card">
+              <div className="glass-card-header">
+                <div className="glass-pulse-dot" />
+                <span>Critical Alert Processed</span>
+              </div>
+              <div className="glass-progress-bar">
+                <div className="glass-progress-fill" />
+              </div>
+              <div className="glass-card-label">98.2% AI Confidence Score</div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* ===== FEATURES (BENTO GRID) ===== */}
       <section className="landing-features" id="features">
         <div className="section-inner">
           <div className="section-header">
-            <h2>Everything You Need to Keep Patients Safe</h2>
-            <p>A complete early warning system that connects caregivers, families, and care coordinators.</p>
+            <h2>Unparalleled Vigilance</h2>
+            <p>Bridging the gap between physician visits with persistent, intelligent safety monitoring.</p>
           </div>
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon blue"><CheckCircle size={28} /></div>
-              <h3>Daily Check-Ins</h3>
-              <p>Simple forms for caregivers and family members to report patient status - pain levels, mobility, medications, mood, and vitals.</p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon purple"><Zap size={28} /></div>
+          <div className="bento-grid">
+            {/* AI Risk Scoring - large card */}
+            <div className="bento-card span-7">
+              <div className="bento-icon blue"><BarChart3 size={28} /></div>
               <h3>AI Risk Scoring</h3>
-              <p>Every check-in is analyzed by AI to calculate a risk score from 0-100, detecting patterns that humans might miss.</p>
+              <p>Our proprietary models aggregate biometric data and patient reports into a continuous safety score, identifying subtle declines before they escalate into hospitalizations.</p>
+              <div className="bento-tags">
+                <span className="bento-tag">Biometric Analysis</span>
+                <span className="bento-tag">Predictive Trends</span>
+              </div>
             </div>
-            <div className="feature-card">
-              <div className="feature-icon red"><Bell size={28} /></div>
-              <h3>Instant Alerts</h3>
-              <p>When risk levels spike, caregivers are notified immediately via email and SMS with specific action recommendations.</p>
+
+            {/* Instant Alerts - dark card */}
+            <div className="bento-card span-5 dark-card">
+              <div>
+                <div className="bento-icon white-glass"><Zap size={28} /></div>
+                <h3>Instant Alerts</h3>
+                <p>Immediate multi-channel notification system when vital thresholds are breached or risky trends are detected.</p>
+              </div>
+              <img className="bento-card-image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjab22UebKuWvtCts15JemLw-Hu56FdezCsHTH5gsKKMoicKCaN1xdYq-puUXZUbtEt2TqqAh0jO3k35__nbFqMrOMFEE7tQ8B1MD-zjtWsSiAw-D-eZvSSvmbHRlGK6uMFIu5lYqYIYNR_4KNC_zh_FdF5cfSc-lqqCIP72GdrZctJ5C6n6mdh_OuPzTRCGzJ0me8FPOvhoBr7Nz8zZB4Ve7nCVIw_ZGvsaLrjL8pINE796QL2Ba1kLCrmcapYlLOVtHqqirUjlbX" alt="Heart rate monitor" />
             </div>
-            <div className="feature-card">
-              <div className="feature-icon green"><BarChart3 size={28} /></div>
-              <h3>Triage Dashboard</h3>
-              <p>A real-time command center showing risk distribution, pending alerts, and patient trends across your entire facility.</p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon orange"><FileText size={28} /></div>
-              <h3>PDF Reports</h3>
-              <p>Generate professional weekly reports per patient or agency-wide - perfect for doctor visits, family updates, or compliance.</p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon teal"><Users size={28} /></div>
-              <h3>Staff Management</h3>
-              <p>Assign caregivers to patients, track who acknowledged and resolved alerts, and manage your care team efficiently.</p>
+
+            {/* Triage Dashboard - full width */}
+            <div className="bento-card span-12">
+              <div className="bento-wide-inner">
+                <div className="bento-wide-content">
+                  <div className="bento-icon secondary"><Activity size={28} /></div>
+                  <h3>Triage Dashboard</h3>
+                  <p>A centralized, high-density control center for clinical teams to prioritize care based on real-time risk stratification across their entire patient population.</p>
+                </div>
+                <div className="bento-triage-preview">
+                  <div className="triage-row critical">
+                    <div className="triage-row-name">Patient #8229 - High Risk</div>
+                    <span className="triage-badge urgent">Immediate Action</span>
+                  </div>
+                  <div className="triage-row stable">
+                    <div className="triage-row-name">Patient #1204 - Stable</div>
+                    <span className="triage-badge routine">Routine</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* ===== HOW IT WORKS ===== */}
       <section className="landing-how" id="how-it-works">
         <div className="section-inner">
-          <div className="section-header">
-            <h2>How BetweenVisits Works</h2>
-            <p>Three simple steps to safer patient care.</p>
+          <div className="how-header">
+            <div className="how-header-top">
+              <div>
+                <h2>Seamless Clinical Integration</h2>
+                <p>Designed to fit naturally into existing workflows, ensuring patient safety never feels like an administrative burden.</p>
+              </div>
+              <button onClick={function() { setLoginOpen(true); }} className="how-get-started-btn">Get Started Now</button>
+            </div>
           </div>
-          <div className="how-steps">
+          <div className="how-steps-grid">
             <div className="how-step">
-              <div className="step-number">1</div>
-              <h3>Submit a Check-In</h3>
-              <p>A caregiver or family member fills out a quick check-in form on their phone or computer - takes less than 2 minutes.</p>
+              <div className="how-step-number">01</div>
+              <h4>Submit Check-In</h4>
+              <p>Patients or caregivers provide rapid, guided updates through our clinical-grade interface.</p>
             </div>
-            <div className="how-arrow"><ChevronRight size={32} /></div>
             <div className="how-step">
-              <div className="step-number">2</div>
-              <h3>AI Analyzes Risk</h3>
-              <p>Our AI engine scores the check-in, compares it against history, and identifies concerning patterns automatically.</p>
+              <div className="how-step-number">02</div>
+              <h4>AI Analyzes</h4>
+              <p>Our BetweenVisits engine cross-references inputs against historical data and clinical benchmarks.</p>
             </div>
-            <div className="how-arrow"><ChevronRight size={32} /></div>
             <div className="how-step">
-              <div className="step-number">3</div>
-              <h3>Get Alerted Instantly</h3>
-              <p>If risk is elevated or critical, the assigned caregiver receives an email and text with specific action recommendations.</p>
+              <div className="how-step-number">03</div>
+              <h4>Get Alerted</h4>
+              <p>Staff receives clear, actionable insights and priority triage ranking for immediate follow-up.</p>
             </div>
           </div>
         </div>
       </section>
 
+      {/* ===== PRICING ===== */}
       <section className="landing-pricing" id="pricing">
         <div className="section-inner">
           <div className="section-header">
             <h2>Simple, Transparent Pricing</h2>
-            <p>Start free. Scale as you grow. No hidden fees.</p>
+            <p>Scale your patient safety network with plans designed for clinical growth.</p>
           </div>
           <div className="pricing-grid">
             <div className="pricing-card">
               <div className="pricing-tier">Starter</div>
-              <div className="pricing-price">
-                <span className="price-amount">$49</span>
-                <span className="price-period">/month</span>
+              <div className="pricing-price-row">
+                <span className="pricing-amount">$49</span>
+                <span className="pricing-period">/mo</span>
               </div>
-              <p className="pricing-desc">Perfect for small home care agencies</p>
               <ul className="pricing-features">
-                <li><CheckCircle size={16} /> Up to 25 patients</li>
-                <li><CheckCircle size={16} /> AI risk scoring</li>
-                <li><CheckCircle size={16} /> Email alerts</li>
-                <li><CheckCircle size={16} /> PDF reports</li>
-                <li><CheckCircle size={16} /> 2 staff accounts</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Up to 25 patients</li>
+                <li><CheckCircle size={18} className="pricing-check" /> AI risk scoring</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Email & SMS alerts</li>
+                <li><CheckCircle size={18} className="pricing-check" /> PDF reports</li>
+                <li><CheckCircle size={18} className="pricing-check" /> 2 staff accounts</li>
               </ul>
-              <button onClick={function() { setLoginOpen(true); }} className="pricing-btn">Get Started</button>
+              <button onClick={function() { setLoginOpen(true); }} className="pricing-btn">Choose Starter</button>
             </div>
             <div className="pricing-card popular">
-              <div className="popular-badge">Most Popular</div>
+              <div className="popular-badge">Recommended</div>
               <div className="pricing-tier">Professional</div>
-              <div className="pricing-price">
-                <span className="price-amount">$99</span>
-                <span className="price-period">/month</span>
+              <div className="pricing-price-row">
+                <span className="pricing-amount">$99</span>
+                <span className="pricing-period">/mo</span>
               </div>
-              <p className="pricing-desc">For growing agencies and assisted living facilities</p>
               <ul className="pricing-features">
-                <li><CheckCircle size={16} /> Up to 100 patients</li>
-                <li><CheckCircle size={16} /> AI risk scoring</li>
-                <li><CheckCircle size={16} /> Email + SMS alerts</li>
-                <li><CheckCircle size={16} /> PDF reports</li>
-                <li><CheckCircle size={16} /> 10 staff accounts</li>
-                <li><CheckCircle size={16} /> Priority support</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Up to 100 patients</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Advanced Triage Dashboard</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Multi-team access</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Email + SMS alerts</li>
+                <li><CheckCircle size={18} className="pricing-check" /> 10 staff accounts</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Priority support</li>
               </ul>
-              <button onClick={function() { setLoginOpen(true); }} className="pricing-btn popular">Start Free Trial</button>
+              <button onClick={handleTryDemo} className="pricing-btn popular">Live Demo Trial</button>
             </div>
             <div className="pricing-card">
               <div className="pricing-tier">Enterprise</div>
-              <div className="pricing-price">
-                <span className="price-amount">$199</span>
-                <span className="price-period">/month</span>
+              <div className="pricing-price-row">
+                <span className="pricing-amount">$199</span>
+                <span className="pricing-period">/mo</span>
               </div>
-              <p className="pricing-desc">For large facilities and multi-location operations</p>
               <ul className="pricing-features">
-                <li><CheckCircle size={16} /> Unlimited patients</li>
-                <li><CheckCircle size={16} /> AI risk scoring</li>
-                <li><CheckCircle size={16} /> Email + SMS alerts</li>
-                <li><CheckCircle size={16} /> PDF reports</li>
-                <li><CheckCircle size={16} /> Unlimited staff accounts</li>
-                <li><CheckCircle size={16} /> Dedicated support</li>
-                <li><CheckCircle size={16} /> Custom integrations</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Unlimited patients</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Full EMR Integration</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Dedicated Safety Consultant</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Custom SLA & Support</li>
+                <li><CheckCircle size={18} className="pricing-check" /> Unlimited staff accounts</li>
               </ul>
               <button onClick={function() { setLoginOpen(true); }} className="pricing-btn">Contact Sales</button>
             </div>
@@ -414,23 +365,20 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ===== CTA ===== */}
       <section className="landing-cta">
         <div className="section-inner">
-          <h2>Ready to Protect Your Patients?</h2>
-          <p>Join home care agencies and assisted living facilities using AI to catch health risks early.</p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={function() { setLoginOpen(true); }} className="hero-btn-primary">
-              Start Your Free Trial <ArrowRight size={20} />
-            </button>
-            <button onClick={handleTryDemo} className="hero-btn-secondary" style={{ cursor: 'pointer', background: 'none', border: '2px solid rgba(255,255,255,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Eye size={18} />
-              Try Live Demo
-            </button>
+          <h2>Empower Your Care Team Today</h2>
+          <p>Built for Arizona home care agencies</p>
+          <div className="cta-buttons">
+            <button onClick={handleTryDemo} className="cta-btn-primary">Try Live Demo</button>
+            <a href="mailto:batharbetweenvisits@gmail.com" className="cta-btn-secondary">Schedule a Walkthrough</a>
           </div>
         </div>
       </section>
 
-      <section className="landing-contact" id="contact" style={{ padding: '4rem 2rem', background: '#f8fafc', textAlign: 'center' }}>
+      {/* ===== CONTACT ===== */}
+      <section className="landing-contact" id="contact">
         <div className="section-inner">
           <div className="section-header">
             <h2>Get In Touch</h2>
@@ -440,20 +388,53 @@ export default function LandingPage() {
             <a href="mailto:batharbetweenvisits@gmail.com" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
               batharbetweenvisits@gmail.com
             </a>
-            <p style={{ color: '#64748b', maxWidth: '500px', lineHeight: 1.6 }}>
+            <p style={{ color: '#64748b', maxWidth: '500px', lineHeight: 1.6, fontSize: '0.95rem' }}>
               Whether you are a home care agency exploring BetweenVisits or have feedback to share, drop us an email and we will get back to you within 24 hours.
             </p>
           </div>
         </div>
       </section>
 
+      {/* ===== FOOTER ===== */}
       <footer className="landing-footer">
-        <div className="landing-nav-inner">
-          <div className="landing-logo">
-            <BetweenVisitsLogo size={28} />
-            <span>BetweenVisits</span>
+        <div className="footer-grid">
+          <div>
+            <div className="footer-brand-title">BetweenVisits AI</div>
+            <p className="footer-brand-desc">Vigilant Sanctuary Protection for patient populations. Advanced AI-driven safety monitoring for the modern healthcare enterprise.</p>
+            <p className="footer-copyright">&copy; 2026 BetweenVisits AI. Vigilant Sanctuary Protection.</p>
           </div>
-          <p className="footer-text">AI-powered early warning system for home care agencies and assisted living facilities.</p>
+          <div>
+            <div className="footer-col-title">Product</div>
+            <ul className="footer-col-links">
+              <li><a href="#features">Features</a></li>
+              <li><a href="#pricing">Security</a></li>
+              <li><a href="#pricing">Status</a></li>
+            </ul>
+          </div>
+          <div>
+            <div className="footer-col-title">Resources</div>
+            <ul className="footer-col-links">
+              <li><a href="#contact">Case Studies</a></li>
+              <li><a href="#contact">Whitepapers</a></li>
+              <li><a href="#contact">Clinical Evidence</a></li>
+            </ul>
+          </div>
+          <div>
+            <div className="footer-col-title">Legal</div>
+            <ul className="footer-col-links">
+              <li><a href="#contact">Privacy Policy</a></li>
+              <li><a href="#contact">Terms of Service</a></li>
+              <li><a href="#contact">Cookie Policy</a></li>
+            </ul>
+          </div>
+          <div>
+            <div className="footer-col-title">Company</div>
+            <ul className="footer-col-links">
+              <li><a href="#contact">About Us</a></li>
+              <li><a href="mailto:batharbetweenvisits@gmail.com">Contact</a></li>
+              <li><a href="#contact">Careers</a></li>
+            </ul>
+          </div>
         </div>
       </footer>
     </div>
