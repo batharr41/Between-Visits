@@ -342,7 +342,7 @@ export default function LandingPage() {
             <div className="pricing-card">
               <div className="pricing-tier">Starter</div>
               <div className="pricing-price">
-                <span className="price-amount">$499</span>
+                <span className="price-amount">$49</span>
                 <span className="price-period">/mo</span>
               </div>
               <ul className="pricing-features">
@@ -356,7 +356,7 @@ export default function LandingPage() {
               <div className="popular-badge">RECOMMENDED</div>
               <div className="pricing-tier">Professional</div>
               <div className="pricing-price">
-                <span className="price-amount">$1,249</span>
+                <span className="price-amount">$99</span>
                 <span className="price-period">/mo</span>
               </div>
               <ul className="pricing-features">
@@ -370,7 +370,8 @@ export default function LandingPage() {
             <div className="pricing-card">
               <div className="pricing-tier">Enterprise</div>
               <div className="pricing-price">
-                <span className="price-amount">Custom</span>
+                <span className="price-amount">$199</span>
+                <span className="price-period">/month</span>
               </div>
               <ul className="pricing-features">
                 <li><CheckCircle size={16} /> Unlimited patients</li>
