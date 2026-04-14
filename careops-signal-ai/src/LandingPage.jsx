@@ -372,7 +372,7 @@ export default function LandingPage() {
           <p>Built for Arizona home care agencies</p>
           <div className="cta-buttons">
             <button onClick={handleTryDemo} className="cta-btn-primary">Try Live Demo</button>
-            <a href="mailto:batharbetweenvisits@gmail.com" className="cta-btn-secondary">Schedule a Walkthrough</a>
+            <a href="https://calendly.com/batharbetweenvisits/betweenvisits-walkthrough" target="_blank" rel="noopener noreferrer" className="cta-btn-secondary">Schedule a Walkthrough</a>
           </div>
         </div>
       </section>
