@@ -250,7 +250,7 @@ function OnboardingScreen() {
                 onChange={function(e) { setSmsConsent(e.target.checked); }}
                 style={{ marginTop: '0.25rem', width: '18px', height: '18px', cursor: 'pointer' }}
               />
-              <span>I consent to receive SMS alerts from BetweenVisits regarding patient status changes and critical health updates. Standard message and data rates may apply. You can opt out at any time.</span>
+              <span>I agree to receive automated SMS/text messages from BetweenVisits at the phone number associated with this agency regarding patient status alerts, critical health updates, and triage notifications. Message frequency varies. Msg & data rates may apply. Reply STOP to unsubscribe. Reply HELP for help. View our Privacy Policy at betweenvisits.org.</span>
             </label>
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
