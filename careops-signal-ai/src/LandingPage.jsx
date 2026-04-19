@@ -385,8 +385,8 @@ export default function LandingPage() {
             <p>Have questions or want a walkthrough? We would love to hear from you.</p>
           </div>
           <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-            <a href="mailto:batharbetweenvisits@gmail.com" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
-              batharbetweenvisits@gmail.com
+            <a href="mailto:betweenvisits1@gmail.com" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
+              betweenvisits1@gmail.com
             </a>
             <p style={{ color: '#64748b', maxWidth: '500px', lineHeight: 1.6, fontSize: '0.95rem' }}>
               Whether you are a home care agency exploring BetweenVisits or have feedback to share, drop us an email and we will get back to you within 24 hours.
@@ -431,7 +431,7 @@ export default function LandingPage() {
             <div className="footer-col-title">Company</div>
             <ul className="footer-col-links">
               <li><a href="#contact">About Us</a></li>
-              <li><a href="mailto:batharbetweenvisits@gmail.com">Contact</a></li>
+              <li><a href="mailto:betweenvisits1@gmail.com">Contact</a></li>
               <li><a href="#contact">Careers</a></li>
             </ul>
           </div>
