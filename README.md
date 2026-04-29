@@ -180,7 +180,7 @@ Signup → /api/me (needs_onboarding: true) → /onboarding → creates agency +
 
 <p align="center">
   <a href="https://betweenvisits.org/">🌐 betweenvisits.org</a> &nbsp;•&nbsp;
-  <a href="mailto:batharbetweenvisits@gmail.com">📧 batharbetweenvisits@gmail.com</a> &nbsp;•&nbsp;
+  <a href="mailto:betweenvisits1@gmail.com">📧 batharbetweenvisits@gmail.com</a> &nbsp;•&nbsp;
   <a href="https://github.com/batharr41">💻 github.com/batharr41</a>
 </p>
 
